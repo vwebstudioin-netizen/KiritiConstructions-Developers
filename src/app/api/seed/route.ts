@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/firebase'
-import { doc, setDoc, addDoc, collection, getDocs, deleteDoc } from 'firebase/firestore'
+import { adminDb } from '@/lib/firebase-admin'
 import {
   DEFAULT_COMPANY, DEFAULT_SERVICES, DEFAULT_PROJECTS,
   DEFAULT_TESTIMONIALS, DEFAULT_TEAM, DEFAULT_BLOG,
-  DEFAULT_CONSTRUCTION_MATERIALS,
 } from '@/types'
 
+// Using Firebase Admin SDK — bypasses security rules for server-side seeding
+
 async function clearCollection(col: string) {
-  const snap = await getDocs(collection(db, col))
-  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
+  const snap = await adminDb.collection(col).get()
+  const batch = adminDb.batch()
+  snap.docs.forEach((d) => batch.delete(d.ref))
+  if (snap.size > 0) await batch.commit()
 }
 
 async function clearSubcollection(parentCol: string, parentId: string, subCol: string) {
-  const snap = await getDocs(collection(db, parentCol, parentId, subCol))
-  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
+  const snap = await adminDb.collection(parentCol).doc(parentId).collection(subCol).get()
+  const batch = adminDb.batch()
+  snap.docs.forEach((d) => batch.delete(d.ref))
+  if (snap.size > 0) await batch.commit()
 }
 
 // ─── Demo Payments ─────────────────────────────────────────────────────────
@@ -79,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     // ─── Company Info ──────────────────────────────────────────────
     if (section === 'all' || section === 'company') {
-      await setDoc(doc(db, 'company', 'main'), DEFAULT_COMPANY)
+      await adminDb.collection('company').doc('main').set(DEFAULT_COMPANY)
       results.company = 'Saved company info'
     }
 
@@ -88,7 +92,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('services')
       for (const s of DEFAULT_SERVICES) {
         const { id, ...data } = s
-        await setDoc(doc(db, 'services', id), data)
+        await adminDb.collection('services').doc(id).set(data)
       }
       results.services = `Seeded ${DEFAULT_SERVICES.length} services`
     }
@@ -98,7 +102,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('projects')
       for (const p of DEFAULT_PROJECTS) {
         const { id, ...data } = p
-        await setDoc(doc(db, 'projects', id), data)
+        await adminDb.collection('projects').doc(id).set(data)
       }
       results.projects = `Seeded ${DEFAULT_PROJECTS.length} projects`
     }
@@ -108,7 +112,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('payments')
       for (const p of DEMO_PAYMENTS) {
         const { id, ...data } = p
-        await setDoc(doc(db, 'payments', id), data)
+        await adminDb.collection('payments').doc(id).set(data)
       }
       results.payments = `Seeded ${DEMO_PAYMENTS.length} payments across 3 projects`
     }
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
       for (const [projectId, members] of Object.entries(DEMO_SITE_TEAMS)) {
         await clearSubcollection('projects', projectId, 'team')
         for (const m of members) {
-          await addDoc(collection(db, 'projects', projectId, 'team'), { ...m, createdAt: new Date().toISOString() })
+          await adminDb.collection('projects').doc(projectId).collection('team').add({ ...m, createdAt: new Date().toISOString() })
         }
       }
       const total = Object.values(DEMO_SITE_TEAMS).reduce((s, m) => s + m.length, 0)
@@ -129,7 +133,7 @@ export async function POST(req: NextRequest) {
     if (section === 'all' || section === 'materials') {
       await clearSubcollection('projects', '3', 'materials')
       for (const m of DEMO_MATERIALS_P3) {
-        await addDoc(collection(db, 'projects', '3', 'materials'), m)
+        await adminDb.collection('projects').doc('3').collection('materials').add(m)
       }
       results.materials = `Seeded ${DEMO_MATERIALS_P3.length} materials for G+3 Apartment project`
     }
@@ -138,7 +142,7 @@ export async function POST(req: NextRequest) {
     if (section === 'all' || section === 'dailyReports') {
       await clearSubcollection('projects', '3', 'dailyReports')
       for (const r of DEMO_DAILY_REPORTS) {
-        await addDoc(collection(db, 'projects', '3', 'dailyReports'), { ...r, projectId: '3' })
+        await adminDb.collection('projects').doc('3').collection('dailyReports').add({ ...r, projectId: '3' })
       }
       results.dailyReports = `Seeded ${DEMO_DAILY_REPORTS.length} daily reports for G+3 Apartment project`
     }
@@ -148,7 +152,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('testimonials')
       for (const t of DEFAULT_TESTIMONIALS) {
         const { id, ...data } = t
-        await setDoc(doc(db, 'testimonials', id), data)
+        await adminDb.collection('testimonials').doc(id).set(data)
       }
       results.testimonials = `Seeded ${DEFAULT_TESTIMONIALS.length} testimonials`
     }
@@ -158,7 +162,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('team')
       for (const m of DEFAULT_TEAM) {
         const { id, ...data } = m
-        await setDoc(doc(db, 'team', id), data)
+        await adminDb.collection('team').doc(id).set(data)
       }
       results.team = `Seeded ${DEFAULT_TEAM.length} team members`
     }
@@ -168,7 +172,7 @@ export async function POST(req: NextRequest) {
       await clearCollection('blog')
       for (const b of DEFAULT_BLOG) {
         const { id, ...data } = b
-        await setDoc(doc(db, 'blog', id), data)
+        await adminDb.collection('blog').doc(id).set(data)
       }
       results.blog = `Seeded ${DEFAULT_BLOG.length} blog posts`
     }

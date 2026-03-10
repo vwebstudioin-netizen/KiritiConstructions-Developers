@@ -4,7 +4,8 @@ import { getAllSupervisors, addSupervisor, updateSupervisor, deleteSupervisor, g
 import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import type { Supervisor, Project } from '@/types'
-import { FiPlus, FiTrash2, FiUserCheck, FiFolder } from 'react-icons/fi'
+import { DEFAULT_PROJECTS } from '@/types'
+import { FiPlus, FiTrash2, FiUserCheck, FiFolder, FiMapPin, FiCheck } from 'react-icons/fi'
 
 const EMPTY = { name: '', phone: '', email: '', password: '', assignedProjects: [] as string[] }
 
@@ -18,7 +19,8 @@ export default function SupervisorsPage() {
 
   useEffect(() => {
     Promise.all([getAllSupervisors(), getAllProjects()]).then(([s, p]) => {
-      setSupervisors(s); setProjects(p)
+      setSupervisors(s)
+      setProjects(p.length > 0 ? p : DEFAULT_PROJECTS)
     })
   }, [])
 
@@ -79,19 +81,36 @@ export default function SupervisorsPage() {
           <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Email (Login) *</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" /></div>
           <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Temp Password * (min 6 chars)</label><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input-field" /></div>
           <div className="md:col-span-2">
-            <label className="block font-body text-xs text-muted uppercase tracking-wider mb-2">Assign Projects</label>
-            <div className="flex flex-wrap gap-2">
-              {projects.map((p) => (
-                <button key={p.id} type="button"
-                  onClick={() => setForm((f) => ({
-                    ...f,
-                    assignedProjects: f.assignedProjects.includes(p.id) ? f.assignedProjects.filter((x) => x !== p.id) : [...f.assignedProjects, p.id]
-                  }))}
-                  className={`px-3 py-1.5 font-body text-xs rounded-lg border transition-all ${form.assignedProjects.includes(p.id) ? 'bg-primary text-white border-primary' : 'border-gray-200 text-dark/60 hover:border-primary'}`}>
-                  {p.title}
-                </button>
-              ))}
+            <label className="block font-body text-xs text-muted uppercase tracking-wider mb-2">
+              Assign Projects <span className="ml-1 text-primary font-semibold">{form.assignedProjects.length > 0 ? `(${form.assignedProjects.length} selected)` : ''}</span>
+            </label>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {projects.map((p) => {
+                const selected = form.assignedProjects.includes(p.id)
+                return (
+                  <button key={p.id} type="button"
+                    onClick={() => setForm((f) => ({
+                      ...f,
+                      assignedProjects: f.assignedProjects.includes(p.id)
+                        ? f.assignedProjects.filter((x) => x !== p.id)
+                        : [...f.assignedProjects, p.id]
+                    }))}
+                    className={`flex items-start justify-between gap-3 p-3 rounded-xl border-2 text-left transition-all ${selected ? 'bg-primary border-primary' : 'border-gray-200 hover:border-primary bg-white'}`}>
+                    <div className="min-w-0">
+                      <p className={`font-body text-sm font-semibold truncate ${selected ? 'text-white' : 'text-dark'}`}>{p.title}</p>
+                      <p className={`font-body text-xs flex items-center gap-1 mt-0.5 ${selected ? 'text-white/70' : 'text-muted'}`}>
+                        <FiMapPin size={10} />{p.location}
+                      </p>
+                      <span className={`inline-block mt-1 font-body text-xs capitalize px-2 py-0.5 rounded-full ${p.status === 'ongoing' ? 'bg-amber-100 text-amber-700' : p.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted'}`}>
+                        {p.status}
+                      </span>
+                    </div>
+                    {selected && <FiCheck className="text-white flex-shrink-0 mt-0.5" size={16} />}
+                  </button>
+                )
+              })}
             </div>
+            {projects.length === 0 && <p className="font-body text-xs text-muted p-3 bg-slate rounded-lg">No projects found. Add projects first from Admin → Projects.</p>}
           </div>
         </div>
         <button onClick={handleAdd} disabled={adding} className="btn-primary mt-4 gap-2 disabled:opacity-60">
@@ -112,7 +131,9 @@ export default function SupervisorsPage() {
                   <p className="font-display text-dark font-bold">{sup.name}</p>
                   <p className="font-body text-xs text-muted">{sup.email} · {sup.phone}</p>
                   <p className="font-body text-xs text-muted mt-0.5">
-                    {sup.assignedProjects.length} project{sup.assignedProjects.length !== 1 ? 's' : ''} assigned
+                    {sup.assignedProjects.length === 0
+                      ? 'No projects assigned'
+                      : projects.filter((p) => sup.assignedProjects.includes(p.id)).map((p) => p.title).join(', ') || `${sup.assignedProjects.length} project${sup.assignedProjects.length !== 1 ? 's' : ''} assigned`}
                   </p>
                 </div>
               </div>
@@ -134,15 +155,30 @@ export default function SupervisorsPage() {
             {/* Project assignment panel */}
             {expandedId === sup.id && (
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <p className="font-body text-xs text-muted uppercase tracking-wider mb-3">Assigned Projects (click to toggle)</p>
-                <div className="flex flex-wrap gap-2">
-                  {projects.map((p) => (
-                    <button key={p.id} onClick={() => toggleProject(sup, p.id)}
-                      className={`px-3 py-1.5 font-body text-xs rounded-lg border transition-all ${sup.assignedProjects.includes(p.id) ? 'bg-primary text-white border-primary' : 'border-gray-200 text-dark/60 hover:border-primary'}`}>
-                      {sup.assignedProjects.includes(p.id) ? '✓ ' : ''}{p.title}
-                    </button>
-                  ))}
-                  {projects.length === 0 && <p className="font-body text-xs text-muted">No projects yet. Create projects first.</p>}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-body text-xs text-muted uppercase tracking-wider">Assign / Remove Projects</p>
+                  <p className="font-body text-xs text-primary font-semibold">{sup.assignedProjects.length} assigned</p>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {projects.map((p) => {
+                    const assigned = sup.assignedProjects.includes(p.id)
+                    return (
+                      <button key={p.id} onClick={() => toggleProject(sup, p.id)}
+                        className={`flex items-start justify-between gap-3 p-3 rounded-xl border-2 text-left transition-all ${assigned ? 'bg-primary border-primary' : 'border-gray-200 hover:border-primary bg-slate'}`}>
+                        <div className="min-w-0">
+                          <p className={`font-body text-sm font-semibold truncate ${assigned ? 'text-white' : 'text-dark'}`}>{p.title}</p>
+                          <p className={`font-body text-xs flex items-center gap-1 mt-0.5 ${assigned ? 'text-white/70' : 'text-muted'}`}>
+                            <FiMapPin size={10} />{p.location}
+                          </p>
+                          <span className={`inline-block mt-1 font-body text-xs capitalize px-2 py-0.5 rounded-full ${p.status === 'ongoing' ? 'bg-amber-100 text-amber-700' : p.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted'}`}>
+                            {p.status}
+                          </span>
+                        </div>
+                        {assigned && <FiCheck className="text-white flex-shrink-0 mt-0.5" size={16} />}
+                      </button>
+                    )
+                  })}
+                  {projects.length === 0 && <p className="col-span-2 font-body text-xs text-muted p-3 bg-white rounded-lg border border-gray-100">No projects found. Add projects first.</p>}
                 </div>
               </div>
             )}

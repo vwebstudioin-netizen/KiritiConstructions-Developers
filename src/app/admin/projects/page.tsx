@@ -5,6 +5,7 @@ import { getAllProjects, addProject, updateProject, deleteProject, getAllClients
 import type { Project, ProjectCategory, ProjectStatus, Client } from '@/types'
 import { DEFAULT_PROJECTS } from '@/types'
 import { FiPlus, FiTrash2, FiEye, FiEyeOff, FiStar, FiSettings, FiInfo } from 'react-icons/fi'
+import ImageUpload from '@/components/ui/ImageUpload'
 
 const CATEGORIES: ProjectCategory[] = ['Residential', 'Commercial', 'Renovation', 'Interior']
 const STATUSES: ProjectStatus[] = ['planning', 'ongoing', 'completed', 'on-hold']
@@ -80,7 +81,15 @@ export default function AdminProjectsPage() {
             <div><label className="block font-body text-sm font-medium text-dark mb-1.5">Location</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="input-field" /></div>
             <div><label className="block font-body text-sm font-medium text-dark mb-1.5">Year</label><input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: Number(e.target.value) })} className="input-field" /></div>
             <div><label className="block font-body text-sm font-medium text-dark mb-1.5">Total Value (₹)</label><input type="number" value={form.totalValue} onChange={(e) => setForm({ ...form, totalValue: Number(e.target.value) })} className="input-field" /></div>
-            <div><label className="block font-body text-sm font-medium text-dark mb-1.5">Cover Image URL</label><input value={form.coverImage} onChange={(e) => setForm({ ...form, coverImage: e.target.value })} className="input-field" /></div>
+            <div className="md:col-span-2">
+              <ImageUpload
+                folder="projects"
+                value={form.images}
+                onChange={(urls) => setForm({ ...form, images: urls, coverImage: urls[0] ?? '' })}
+                maxImages={8}
+                label="Project Images (first image = cover photo)"
+              />
+            </div>
             <div className="md:col-span-2"><label className="block font-body text-sm font-medium text-dark mb-1.5">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-field resize-none" /></div>
           </div>
           <div className="flex gap-3 mt-4">

@@ -23,8 +23,9 @@ import { FaWhatsapp } from 'react-icons/fa'
 // sendMilestoneUpdate called via /api/milestone-complete to avoid nodemailer in client bundle
 import { format } from 'date-fns'
 import PhotoUpload from '@/components/ui/PhotoUpload'
+import ImageUpload from '@/components/ui/ImageUpload'
 
-type Tab = 'overview' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments'
+type Tab = 'overview' | 'images' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments'
 
 const MILESTONE_STATUSES: MilestoneStatus[] = ['pending', 'in-progress', 'completed']
 const DOC_TYPES: DocumentType[] = ['blueprint', 'estimate', 'invoice', 'completion', 'other']
@@ -244,6 +245,7 @@ export default function ProjectManagePage() {
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
     { key: 'overview', label: 'Overview' },
+    { key: 'images', label: 'Images', badge: project.images?.length || undefined },
     { key: 'materials', label: 'Materials', badge: materials.filter((m) => (m.totalInward - m.totalConsumed) < m.lowStockThreshold).length || undefined },
     { key: 'log-entry', label: 'Log Entry' },
     { key: 'transactions', label: 'Transactions', badge: transactions.length || undefined },
@@ -313,6 +315,34 @@ export default function ProjectManagePage() {
                 </div>
                 <p className="font-body text-sm text-muted">{dailyReports[0].workDone}</p>
                 {dailyReports[0].issuesReported && <p className="font-body text-xs text-red-500 mt-1">Issue: {dailyReports[0].issuesReported}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── IMAGES ─── */}
+      {activeTab === 'images' && (
+        <div className="admin-card">
+          <h2 className="font-display text-lg text-dark font-bold mb-2">Project Images</h2>
+          <p className="font-body text-xs text-muted mb-5">Upload photos of the project. The first image is the cover shown on the website. Hover over any image to set it as cover or remove it.</p>
+          <ImageUpload
+            folder={`projects/${id}`}
+            value={project.images ?? []}
+            onChange={async (urls) => {
+              const updated = { images: urls, coverImage: urls[0] ?? '' }
+              setProject((p) => p ? { ...p, ...updated } : p)
+              if (id) await (await import('@/lib/firestore')).updateProject(id, updated)
+            }}
+            maxImages={12}
+            label="Project Gallery"
+          />
+          {project.coverImage && (
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <p className="font-body text-xs text-muted uppercase tracking-wider mb-2">Current Cover Image</p>
+              <div className="relative w-48 h-32 rounded-xl overflow-hidden border-2 border-accent">
+                <img src={project.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <span className="absolute top-1 left-1 bg-accent text-dark text-xs font-bold px-2 py-0.5 rounded-lg">Cover</span>
               </div>
             </div>
           )}

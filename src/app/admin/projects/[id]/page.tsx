@@ -318,6 +318,104 @@ export default function ProjectManagePage() {
               </div>
             </div>
           )}
+
+          {/* ─── Project Settings (assign client, status, value) ─── */}
+          <div className="admin-card">
+            <h3 className="font-display text-lg text-dark font-bold mb-4">Project Settings</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Assign Client */}
+              <div>
+                <label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Assigned Client</label>
+                <select
+                  value={project.clientId ?? ''}
+                  onChange={async (e) => {
+                    const clientId = e.target.value
+                    setProject((p) => p ? { ...p, clientId } : p)
+                    if (id) {
+                      const { updateProject } = await import('@/lib/firestore')
+                      await updateProject(id, { clientId })
+                    }
+                    showMsg('Client assigned!')
+                  }}
+                  className="input-field"
+                >
+                  <option value="">— No client assigned —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.uid}>{c.name} · {c.phone}</option>
+                  ))}
+                </select>
+                {project.clientId && (
+                  <p className="font-body text-xs text-green-600 mt-1.5">
+                    Client portal active — client can view milestones, documents & payments.
+                  </p>
+                )}
+                {!project.clientId && (
+                  <p className="font-body text-xs text-muted mt-1.5">
+                    Select a client to give them portal access to this project.
+                  </p>
+                )}
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Project Status</label>
+                <select
+                  value={project.status}
+                  onChange={async (e) => {
+                    const status = e.target.value as typeof project.status
+                    setProject((p) => p ? { ...p, status } : p)
+                    if (id) {
+                      const { updateProject } = await import('@/lib/firestore')
+                      await updateProject(id, { status })
+                    }
+                    showMsg('Status updated!')
+                  }}
+                  className="input-field capitalize"
+                >
+                  {(['planning', 'ongoing', 'completed', 'on-hold'] as const).map((s) => (
+                    <option key={s} value={s} className="capitalize">{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Total Value */}
+              <div>
+                <label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Contract Value (₹)</label>
+                <input
+                  type="number"
+                  value={project.totalValue ?? ''}
+                  onChange={(e) => setProject((p) => p ? { ...p, totalValue: Number(e.target.value) } : p)}
+                  onBlur={async (e) => {
+                    if (id) {
+                      const { updateProject } = await import('@/lib/firestore')
+                      await updateProject(id, { totalValue: Number(e.target.value) })
+                      showMsg('Contract value saved!')
+                    }
+                  }}
+                  placeholder="e.g. 4500000"
+                  className="input-field"
+                />
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Start Date</label>
+                <input
+                  type="date"
+                  value={project.startDate ?? ''}
+                  onChange={(e) => setProject((p) => p ? { ...p, startDate: e.target.value } : p)}
+                  onBlur={async (e) => {
+                    if (id) {
+                      const { updateProject } = await import('@/lib/firestore')
+                      await updateProject(id, { startDate: e.target.value })
+                      showMsg('Start date saved!')
+                    }
+                  }}
+                  className="input-field"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

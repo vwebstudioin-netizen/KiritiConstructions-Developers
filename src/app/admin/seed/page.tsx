@@ -2,15 +2,19 @@
 import { useState } from 'react'
 import { FiDatabase, FiCheckCircle, FiAlertTriangle, FiLoader } from 'react-icons/fi'
 
-type Section = 'company' | 'services' | 'projects' | 'testimonials' | 'team' | 'blog'
+type Section = 'company' | 'services' | 'projects' | 'payments' | 'siteTeams' | 'materials' | 'dailyReports' | 'testimonials' | 'team' | 'blog'
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
-const SECTIONS: { key: Section; label: string; description: string; count: string }[] = [
+const SECTIONS: { key: Section; label: string; description: string; count: string; tag?: string }[] = [
   { key: 'company', label: 'Company Info', description: 'Name, tagline, address, phone, hours, social links', count: '1 document' },
   { key: 'services', label: 'Services', description: 'Residential, Commercial, Renovation, Interior, Civil, Painting', count: '6 services' },
-  { key: 'projects', label: 'Projects', description: 'Villa, Office complex, Apartments, Showroom, Renovation, Civil work', count: '6 projects' },
+  { key: 'projects', label: 'Projects', description: 'Villa, Office Complex, Apartments, Showroom, Renovation, Civil work', count: '6 projects' },
+  { key: 'payments', label: 'Payments', description: 'Demo payment requests with paid + pending status across 3 projects', count: '12 payments', tag: 'Admin demo' },
+  { key: 'siteTeams', label: 'Site Teams', description: 'Site engineers, masons, and foremen for Villa and Apartment projects', count: '7 members', tag: 'Admin demo' },
+  { key: 'materials', label: 'Materials & Inventory', description: 'Sand, Cement, Steel, Bricks with realistic inward/consumed quantities for G+3 Apartments', count: '8 materials', tag: 'Admin demo' },
+  { key: 'dailyReports', label: 'Daily Reports', description: '3 recent supervisor daily reports for G+3 Apartment project', count: '3 reports', tag: 'Admin demo' },
   { key: 'testimonials', label: 'Testimonials', description: 'Client reviews with ratings and project types', count: '4 reviews' },
-  { key: 'team', label: 'Team Members', description: 'MD, Civil Engineer, Supervisor, Interior Lead', count: '4 members' },
+  { key: 'team', label: 'Company Team', description: 'MD, Civil Engineer, Supervisor, Interior Lead', count: '4 members' },
   { key: 'blog', label: 'Blog Posts', description: 'Construction tips, material tracking, steel vs concrete guides', count: '3 articles' },
 ]
 
@@ -132,7 +136,10 @@ export default function SeedPage() {
                    <FiDatabase className="text-primary" size={16} />}
                 </div>
                 <div>
-                  <p className="font-body font-semibold text-dark text-sm">{s.label}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-body font-semibold text-dark text-sm">{s.label}</p>
+                    {s.tag && <span className="font-body text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{s.tag}</span>}
+                  </div>
                   <p className="font-body text-xs text-muted">{status === 'success' ? (messages[s.key] ?? 'Done') : status === 'error' ? (messages[s.key] ?? 'Failed — check Firebase config') : s.description}</p>
                   <p className="font-body text-xs text-muted/60 mt-0.5">{s.count}</p>
                 </div>

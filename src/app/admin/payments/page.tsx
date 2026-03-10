@@ -80,8 +80,8 @@ export default function AdminPaymentsPage() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <div className="admin-card"><p className="font-display text-2xl text-green-600 font-bold">₹{(totalPaid / 100000).toFixed(1)}L</p><p className="font-body text-xs text-muted mt-0.5">Total Collected</p></div>
-        <div className="admin-card"><p className="font-display text-2xl text-accent-dark font-bold">₹{(totalPending / 100000).toFixed(1)}L</p><p className="font-body text-xs text-muted mt-0.5">Pending Dues</p></div>
+        <div className="admin-card"><p className="font-display text-2xl text-green-600 font-bold">₹{totalPaid.toLocaleString('en-IN')}</p><p className="font-body text-xs text-muted mt-0.5">Total Collected</p></div>
+        <div className="admin-card"><p className="font-display text-2xl text-accent-dark font-bold">₹{totalPending.toLocaleString('en-IN')}</p><p className="font-body text-xs text-muted mt-0.5">Pending Dues</p></div>
         <div className="admin-card"><p className="font-display text-2xl text-dark font-bold">{payments.length}</p><p className="font-body text-xs text-muted mt-0.5">Total Transactions</p></div>
       </div>
 
@@ -98,45 +98,48 @@ export default function AdminPaymentsPage() {
         {filtered.map((pay) => {
           const client = clients[pay.clientId ?? '']
           const project = projects[pay.projectId]
+          const isPending = pay.status === 'pending'
           return (
-            <div key={pay.id} className="flex items-start justify-between gap-4 p-4 bg-slate rounded-xl border border-gray-100">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="font-body font-semibold text-dark text-sm">{pay.description}</span>
-                  <span className={`badge capitalize ${STATUS_COLORS[pay.status] ?? 'badge-gray'}`}>{pay.status}</span>
+            <div key={pay.id} className={`p-4 rounded-xl border ${isPending ? 'bg-amber-50 border-amber-200' : 'bg-slate border-gray-100'}`}>
+              {/* Top row: description + amount */}
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-body font-semibold text-dark text-sm">{pay.description}</span>
+                    <span className={`badge capitalize ${STATUS_COLORS[pay.status] ?? 'badge-gray'}`}>{pay.status}</span>
+                  </div>
+                  <p className="font-body text-xs text-muted">{project?.title ?? '—'}</p>
+                  <p className="font-body text-xs text-muted">{client?.name ?? '—'} {client ? `· ${client.phone}` : ''}</p>
+                  <p className="font-body text-xs text-muted">{new Date(pay.createdAt).toLocaleDateString('en-IN')}</p>
+                  {pay.status === 'paid' && pay.paidAt && (
+                    <p className="font-body text-xs text-green-600 mt-0.5">Paid on {new Date(pay.paidAt).toLocaleDateString('en-IN')}</p>
+                  )}
                 </div>
-                <p className="font-body text-xs text-muted">{project?.title ?? pay.projectId} · {client?.name ?? pay.clientId}</p>
-                {client && <p className="font-body text-xs text-muted">{client.phone}</p>}
-                <p className="font-body text-xs text-muted">{new Date(pay.createdAt).toLocaleDateString('en-IN')}</p>
-                {pay.status === 'paid' && pay.paidAt && (
-                  <p className="font-body text-xs text-green-600 mt-0.5">Paid on {new Date(pay.paidAt).toLocaleDateString('en-IN')}</p>
-                )}
+                <p className="font-display text-xl text-dark font-bold flex-shrink-0">
+                  ₹{pay.amount.toLocaleString('en-IN')}
+                </p>
               </div>
 
-              <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                <p className="font-display text-lg text-dark font-bold">₹{(pay.amount / 100000).toFixed(1)}L</p>
-
-                {/* Mark as Paid — sends email automatically */}
-                {pay.status === 'pending' && (
+              {/* Bottom row: action buttons — always visible */}
+              <div className="flex gap-2 flex-wrap">
+                {isPending && (
                   <button
                     onClick={() => markAsPaid(pay)}
                     disabled={marking === pay.id}
-                    className="flex items-center gap-1.5 font-body text-xs font-semibold bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-body text-sm font-semibold bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60"
                   >
-                    <FiCheckCircle size={12} />
-                    {marking === pay.id ? 'Sending...' : 'Mark as Paid'}
+                    <FiCheckCircle size={14} />
+                    {marking === pay.id ? 'Processing...' : 'Mark as Paid'}
                   </button>
                 )}
-
-                {/* WhatsApp receipt — shown for paid payments */}
                 {pay.status === 'paid' && client && (
                   <a
                     href={whatsappLinks[pay.id] || buildWhatsApp(client, project, pay)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 font-body text-xs font-semibold bg-[#25D366] text-white px-3 py-1.5 rounded-lg hover:bg-[#1ebe59] transition-colors"
+                    className="flex items-center justify-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-4 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors"
                   >
-                    <FaWhatsapp size={13} /> Send Receipt
+                    <FaWhatsapp size={14} /> Send Receipt on WhatsApp
                   </a>
                 )}
               </div>

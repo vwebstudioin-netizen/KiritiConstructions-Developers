@@ -215,18 +215,12 @@ service cloud.firestore {
       }
     }
 
-    // ── Unit Enquiries (public submit, admin reads) ───────────────
-    match /unitEnquiries/{id} {
-      allow read: if isAuth();
-      allow write: if true;
-    }
   }
 }
 ```
 
 > **Important:**
-> - `enquiries` — `write: if true` so website visitors can submit quote forms without logging in
-> - `unitEnquiries` — `write: if true` so customers can enquire about plots/apartments without an account
+> - `enquiries` — `write: if true` so website visitors can submit both quote forms AND plot/unit enquiries without logging in. All enquiries go to one collection and are visible in **Admin → Enquiries**.
 > - `inventoryProjects` and `units` — public read so anyone can see availability in real-time
 
 ---

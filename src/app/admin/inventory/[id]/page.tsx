@@ -4,13 +4,12 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   getInventoryUnits, addInventoryUnit, updateInventoryUnit, deleteInventoryUnit,
-  getUnitEnquiriesByProject, updateUnitEnquiry,
   getAllInventoryProjects,
 } from '@/lib/firestore'
-import type { InventoryUnit, InventoryProject, UnitEnquiry, UnitStatus, UnitFacing, SizeUnit, EnquiryStatus } from '@/types'
+import type { InventoryUnit, InventoryProject, UnitStatus, UnitFacing, SizeUnit } from '@/types'
 import { FiArrowLeft, FiPlus, FiTrash2, FiX, FiCheck } from 'react-icons/fi'
 
-type Tab = 'units' | 'enquiries'
+type Tab = 'units'
 
 const SIZE_UNITS: SizeUnit[] = ['sqft', 'sqyd', 'cents', 'acres', 'guntas']
 const FACINGS: UnitFacing[] = ['East', 'West', 'North', 'South', 'NE', 'NW', 'SE', 'SW']
@@ -19,8 +18,6 @@ const STATUS_STYLES: Record<UnitStatus, string> = {
   booked: 'bg-amber-50 border-amber-300 text-amber-800 cursor-default',
   sold: 'bg-red-50 border-red-300 text-red-800 cursor-default opacity-70',
 }
-const ENQUIRY_STATUSES: EnquiryStatus[] = ['new', 'contacted', 'converted', 'closed']
-const ENQUIRY_COLORS: Record<EnquiryStatus, string> = { new: 'badge-accent', contacted: 'badge-blue', converted: 'badge-green', closed: 'badge-gray' }
 
 const EMPTY_UNIT = { unitNumber: '', type: 'plot' as InventoryUnit['type'], size: 0, sizeUnit: 'sqft' as SizeUnit, price: 0, status: 'available' as UnitStatus, facing: undefined as UnitFacing | undefined, floor: undefined as number | undefined, sortOrder: 0 }
 
@@ -28,7 +25,6 @@ export default function AdminInventoryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [project, setProject] = useState<InventoryProject | null>(null)
   const [units, setUnits] = useState<InventoryUnit[]>([])
-  const [enquiries, setEnquiries] = useState<UnitEnquiry[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('units')
   const [message, setMessage] = useState('')
 
@@ -51,10 +47,9 @@ export default function AdminInventoryDetailPage() {
     Promise.all([
       getAllInventoryProjects(),
       getInventoryUnits(id),
-      getUnitEnquiriesByProject(id),
-    ]).then(([projs, u, e]) => {
+    ]).then(([projs, u]) => {
       setProject(projs.find((p) => p.id === id) ?? null)
-      setUnits(u); setEnquiries(e)
+      setUnits(u)
     })
   }, [id])
 
@@ -109,10 +104,6 @@ export default function AdminInventoryDetailPage() {
     setSelectedUnit(null); setSavingModal(false); showMsg('Unit status updated!')
   }
 
-  const updateEnquiryStatus = async (enquiryId: string, status: EnquiryStatus) => {
-    await updateUnitEnquiry(enquiryId, { status })
-    setEnquiries((e) => e.map((x) => x.id === enquiryId ? { ...x, status } : x))
-  }
 
   const available = units.filter((u) => u.status === 'available').length
   const booked = units.filter((u) => u.status === 'booked').length
@@ -142,15 +133,6 @@ export default function AdminInventoryDetailPage() {
         <div className="admin-card text-center border-red-200 bg-red-50"><p className="font-display text-2xl text-red-600 font-bold">{sold}</p><p className="font-body text-xs text-muted">Sold</p></div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-5">
-        {([['units', 'Units Grid'], ['enquiries', `Enquiries (${enquiries.length})`]] as const).map(([key, label]) => (
-          <button key={key} onClick={() => setActiveTab(key)}
-            className={`px-4 py-2 rounded-xl font-body text-sm font-medium transition-all ${activeTab === key ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-dark hover:border-primary'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
 
       {/* ─── UNITS GRID ─── */}
       {activeTab === 'units' && (
@@ -248,40 +230,6 @@ export default function AdminInventoryDetailPage() {
         </div>
       )}
 
-      {/* ─── ENQUIRIES ─── */}
-      {activeTab === 'enquiries' && (
-        <div className="admin-card">
-          <h2 className="font-display text-lg text-dark font-bold mb-4">Unit Enquiries</h2>
-          {enquiries.length === 0 ? (
-            <p className="text-center font-body text-muted py-8 text-sm">No enquiries yet for this project.</p>
-          ) : (
-            <div className="space-y-3">
-              {enquiries.map((e) => (
-                <div key={e.id} className="flex items-start justify-between gap-4 p-4 bg-slate rounded-xl border border-gray-100">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-body font-semibold text-dark text-sm">{e.name}</span>
-                      {e.unitNumber && <span className="badge-primary">{e.unitNumber}</span>}
-                      <span className={`badge capitalize ${ENQUIRY_COLORS[e.status]}`}>{e.status}</span>
-                    </div>
-                    <p className="font-body text-xs text-muted">{e.phone} · {e.email}</p>
-                    <p className="font-body text-xs text-muted">{new Date(e.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                    {e.message && <p className="font-body text-xs text-dark mt-1">{e.message}</p>}
-                  </div>
-                  <div className="flex flex-col gap-1.5 flex-shrink-0">
-                    {ENQUIRY_STATUSES.map((s) => (
-                      <button key={s} onClick={() => updateEnquiryStatus(e.id, s)}
-                        className={`px-2.5 py-1 rounded-lg font-body text-xs capitalize transition-colors ${e.status === s ? 'bg-primary text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ─── STATUS MODAL ─── */}
       {selectedUnit && (

@@ -1,44 +1,33 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getAllEnquiries, updateEnquiry, deleteEnquiry, getAllUnitEnquiries, updateUnitEnquiry } from '@/lib/firestore'
-import type { Enquiry, EnquiryStatus, UnitEnquiry } from '@/types'
+import { getAllEnquiries, updateEnquiry, deleteEnquiry } from '@/lib/firestore'
+import type { Enquiry, EnquiryStatus } from '@/types'
 import { FiPhone, FiMail, FiTrash2, FiHome } from 'react-icons/fi'
 
 const STATUS_COLORS: Record<EnquiryStatus, string> = { new: 'bg-blue-100 text-blue-700', contacted: 'bg-amber-100 text-amber-700', converted: 'bg-green-100 text-green-700', closed: 'bg-gray-100 text-muted' }
 
-type CombinedEnquiry =
-  | (Enquiry & { _type: 'quote' })
-  | (UnitEnquiry & { _type: 'plot'; status: EnquiryStatus })
+const isPlotEnquiry = (e: Enquiry) => e.serviceType?.startsWith('Plot/Unit Enquiry')
 
 export default function EnquiriesPage() {
-  const [all, setAll] = useState<CombinedEnquiry[]>([])
+  const [all, setAll] = useState<Enquiry[]>([])
   const [filter, setFilter] = useState<EnquiryStatus | 'all'>('all')
 
   useEffect(() => {
-    Promise.all([getAllEnquiries(), getAllUnitEnquiries()]).then(([quotes, units]) => {
-      const combined: CombinedEnquiry[] = [
-        ...quotes.map((e) => ({ ...e, _type: 'quote' as const })),
-        ...units.map((u) => ({ ...u, _type: 'plot' as const, status: (u.status as EnquiryStatus) ?? 'new' })),
-      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      setAll(combined)
+    getAllEnquiries().then((items) => {
+      setAll(items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
     })
   }, [])
 
   const filtered = filter === 'all' ? all : all.filter((e) => e.status === filter)
 
-  const handleStatus = async (item: CombinedEnquiry, status: EnquiryStatus) => {
-    if (item._type === 'quote') {
-      await updateEnquiry(item.id, { status })
-    } else {
-      await updateUnitEnquiry(item.id, { status })
-    }
+  const handleStatus = async (item: Enquiry, status: EnquiryStatus) => {
+    await updateEnquiry(item.id, { status })
     setAll((prev) => prev.map((e) => e.id === item.id ? { ...e, status } : e))
   }
 
-  const handleDelete = async (item: CombinedEnquiry) => {
+  const handleDelete = async (item: Enquiry) => {
     if (!confirm('Delete this enquiry?')) return
-    if (item._type === 'quote') await deleteEnquiry(item.id)
-    // unit enquiries — just remove from UI (add deleteUnitEnquiry if needed)
+    await deleteEnquiry(item.id)
     setAll((prev) => prev.filter((e) => e.id !== item.id))
   }
 
@@ -48,7 +37,7 @@ export default function EnquiriesPage() {
     <div>
       <h1 className="font-display text-3xl text-dark font-bold mb-2">Enquiries</h1>
       <p className="font-body text-muted text-sm mb-6">
-        {newCount} new · {all.filter((e) => e._type === 'quote').length} quote requests · {all.filter((e) => e._type === 'plot').length} plot enquiries
+        {newCount} new · {all.filter((e) => !isPlotEnquiry(e)).length} quote requests · {all.filter((e) => isPlotEnquiry(e)).length} plot enquiries
       </p>
 
       <div className="flex flex-wrap gap-2 mb-6">
@@ -61,33 +50,30 @@ export default function EnquiriesPage() {
 
       <div className="space-y-4">
         {filtered.map((enq) => (
-          <div key={`${enq._type}-${enq.id}`} className="admin-card">
+          <div key={enq.id} className="admin-card">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap mb-2">
                   <h3 className="font-display text-dark font-bold">{enq.name}</h3>
                   <span className={`badge text-xs ${STATUS_COLORS[enq.status]}`}>{enq.status}</span>
-                  {enq._type === 'plot' ? (
+                  {isPlotEnquiry(enq) ? (
                     <span className="flex items-center gap-1 badge bg-primary/10 text-primary">
                       <FiHome size={11} /> Plot Enquiry
                     </span>
                   ) : (
-                    <span className="badge-accent">{(enq as Enquiry).serviceType}</span>
+                    <span className="badge-accent">{enq.serviceType}</span>
                   )}
                 </div>
 
                 <div className="flex flex-wrap gap-4 text-sm font-body text-muted mb-2">
                   <a href={`tel:${enq.phone}`} className="flex items-center gap-1.5 hover:text-primary"><FiPhone size={13} />{enq.phone}</a>
                   <a href={`mailto:${enq.email}`} className="flex items-center gap-1.5 hover:text-primary"><FiMail size={13} />{enq.email}</a>
-                  {enq._type === 'plot' ? (
-                    <>
-                      <span>Project: {(enq as UnitEnquiry).projectTitle}</span>
-                      {(enq as UnitEnquiry).unitNumber && <span>Unit: <strong>{(enq as UnitEnquiry).unitNumber}</strong></span>}
-                    </>
+                  {isPlotEnquiry(enq) ? (
+                    <span>{enq.serviceType}</span>
                   ) : (
                     <>
-                      <span>📍 {(enq as Enquiry).projectLocation}</span>
-                      <span>💰 {(enq as Enquiry).budget}</span>
+                      <span>{enq.projectLocation}</span>
+                      <span>{enq.budget}</span>
                     </>
                   )}
                 </div>

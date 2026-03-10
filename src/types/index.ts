@@ -9,6 +9,36 @@ export type MilestoneStatus = 'pending' | 'in-progress' | 'completed'
 export type PaymentStatus = 'pending' | 'paid' | 'failed'
 export type EnquiryStatus = 'new' | 'contacted' | 'converted' | 'closed'
 export type DocumentType = 'blueprint' | 'estimate' | 'invoice' | 'completion' | 'other'
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
+
+export interface QuoteLineItem {
+  description: string
+  unit: string        // sqft, nos, RMT, cubic meters, lumpsum, bags, kg
+  quantity: number
+  rate: number
+  amount: number      // quantity * rate
+}
+
+export interface Quote {
+  id: string
+  quoteNumber: string       // e.g. KCD/2025/001
+  projectTitle: string
+  siteAddress: string
+  clientName: string
+  clientPhone: string
+  clientEmail?: string
+  items: QuoteLineItem[]
+  subtotal: number
+  gstPercent: number        // default 18
+  gstAmount: number
+  totalAmount: number
+  validityDays: number      // default 30
+  notes?: string
+  terms?: string
+  status: QuoteStatus
+  createdAt: string
+  sentAt?: string
+}
 
 // ─── Core Types ───────────────────────────────────────────────────────────────
 

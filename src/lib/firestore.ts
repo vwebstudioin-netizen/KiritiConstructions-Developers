@@ -7,6 +7,7 @@ import type {
   CompanyInfo, Client, Service, Project, Milestone, ProjectDocument,
   Payment, TeamMember, BlogPost, Enquiry, Testimonial,
   Supervisor, SiteTeamMember, ProjectMaterial, MaterialTransaction, DailyReport,
+  Quote,
 } from '@/types'
 
 // ─── Company ──────────────────────────────────────────────────────
@@ -159,6 +160,17 @@ export async function getAllTestimonials(): Promise<Testimonial[]> {
 export async function addTestimonial(data: Omit<Testimonial, 'id'>) { return (await addDoc(collection(db, 'testimonials'), { ...data, createdAt: serverTimestamp() })).id }
 export async function updateTestimonial(id: string, data: Partial<Testimonial>) { await updateDoc(doc(db, 'testimonials', id), data) }
 export async function deleteTestimonial(id: string) { await deleteDoc(doc(db, 'testimonials', id)) }
+
+// ─── Quotes ───────────────────────────────────────────────────────
+export async function getAllQuotes(): Promise<Quote[]> {
+  try { const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Quote)) } catch { return [] }
+}
+export async function getQuoteById(id: string): Promise<Quote | null> {
+  try { const d = await getDoc(doc(db, 'quotes', id)); return d.exists() ? { id: d.id, ...d.data() } as Quote : null } catch { return null }
+}
+export async function addQuote(data: Omit<Quote, 'id'>) { return (await addDoc(collection(db, 'quotes'), { ...data, createdAt: new Date().toISOString() })).id }
+export async function updateQuote(id: string, data: Partial<Quote>) { await updateDoc(doc(db, 'quotes', id), data) }
+export async function deleteQuote(id: string) { await deleteDoc(doc(db, 'quotes', id)) }
 
 // ─── Supervisors ──────────────────────────────────────────────────
 export async function getAllSupervisors(): Promise<Supervisor[]> {

@@ -64,9 +64,14 @@ export default function AdminProjectsPage() {
       </div>
       {message && <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 font-body text-sm">{message}</div>}
       {isDemo && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl px-4 py-3 font-body text-sm flex items-start gap-2">
+        <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 font-body text-sm flex items-start gap-2">
           <FiInfo size={16} className="mt-0.5 flex-shrink-0" />
-          <span>Showing <strong>demo projects</strong> — Firebase is not configured. Add your <code>.env.local</code> keys to connect to your database. Projects you add here will be saved once Firebase is configured.</span>
+          <div>
+            <strong>Database is empty.</strong>{' '}
+            {process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID === 'demo-project'
+              ? 'Firebase is not configured — add your .env.local keys first.'
+              : <>No projects found in your database. Go to <a href="/admin/seed" className="underline font-semibold">Admin → Seed</a> to populate with demo data, or click <strong>Add Project</strong> above to create your first project.</>}
+          </div>
         </div>
       )}
 

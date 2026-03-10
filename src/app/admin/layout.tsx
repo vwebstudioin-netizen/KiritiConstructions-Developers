@@ -4,12 +4,13 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { FiGrid, FiFolder, FiUsers, FiCreditCard, FiTool, FiUserCheck, FiFileText, FiMessageSquare, FiSettings, FiLogOut, FiMenu, FiX, FiHardDrive } from 'react-icons/fi'
+import { FiGrid, FiFolder, FiUsers, FiCreditCard, FiTool, FiUserCheck, FiFileText, FiMessageSquare, FiSettings, FiLogOut, FiMenu, FiX, FiHardDrive, FiClipboard } from 'react-icons/fi'
 
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: FiGrid },
   { href: '/admin/projects', label: 'Projects', icon: FiFolder },
   { href: '/admin/supervisors', label: 'Supervisors', icon: FiHardDrive },
+  { href: '/admin/quotes', label: 'Quotes', icon: FiClipboard },
   { href: '/admin/clients', label: 'Clients', icon: FiUserCheck },
   { href: '/admin/payments', label: 'Payments', icon: FiCreditCard },
   { href: '/admin/services', label: 'Services', icon: FiTool },

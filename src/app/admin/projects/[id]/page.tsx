@@ -214,29 +214,19 @@ export default function ProjectManagePage() {
   }
 
   const handleMarkAsPaid = async (pay: Payment) => {
-    if (!confirm(`Mark ₹${(pay.amount / 100000).toFixed(1)}L as PAID?\n\nThis will send email receipt to client.`)) return
     setMarkingPayment(pay.id)
-    try {
-      const res = await fetch('/api/payments/mark-paid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: pay.id, clientId: pay.clientId, projectId: pay.projectId, amount: pay.amount, description: pay.description }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setPayments((prev) => prev.map((p) => p.id === pay.id ? { ...p, status: 'paid', paidAt: new Date().toISOString() } : p))
-        if (data.whatsappUrl) setWaLinks((prev) => ({ ...prev, [pay.id]: data.whatsappUrl }))
-        showMsg(`Paid! Email receipt sent.`)
-      }
-    } catch { showMsg('Error marking as paid.') }
-    finally { setMarkingPayment(null) }
+    const paidAt = new Date().toISOString()
+    await (await import('@/lib/firestore')).updatePayment(pay.id, { status: 'paid', paidAt })
+    setPayments((prev) => prev.map((p) => p.id === pay.id ? { ...p, status: 'paid', paidAt } : p))
+    setMarkingPayment(null)
+    showMsg('Payment marked as paid.')
   }
 
   const buildPayWhatsApp = (pay: Payment): string => {
     const c = clients.find((cl) => cl.uid === pay.clientId)
     if (!c) return '#'
     const amount = `₹${Number(pay.amount).toLocaleString('en-IN')}`
-    const msg = `Dear ${c.name},\n\nYour payment of *${amount}* for *${pay.description}* has been received.\n\nProject: ${project?.title ?? ''}\n\nThank you.\nKiriti Constructions & Developers`
+    const msg = `*Payment Receipt*\n\nDear ${c.name},\n\nWe confirm receipt of your payment:\n\n*Amount:* ${amount}\n*For:* ${pay.description}\n*Project:* ${project?.title ?? ''}\n*Date:* ${pay.paidAt ? new Date(pay.paidAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}\n\nThank you!\n— Kiriti Constructions & Developers`
     const phone = c.phone.replace(/\D/g, '')
     return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
   }
@@ -791,19 +781,18 @@ export default function ProjectManagePage() {
                   <p className="font-body text-xs text-muted">{new Date(pay.createdAt).toLocaleDateString('en-IN')}</p>
                   {pay.status === 'paid' && pay.paidAt && <p className="font-body text-xs text-green-600">Paid on {new Date(pay.paidAt).toLocaleDateString('en-IN')}</p>}
                 </div>
-                <div className="text-right flex flex-col items-end gap-1.5">
-                  <p className="font-display text-lg font-bold text-dark">₹{(pay.amount / 100000).toFixed(1)}L</p>
-                  <span className={`badge capitalize ${pay.status === 'paid' ? 'badge-green' : 'badge-gray'}`}>{pay.status}</span>
+                <div className="flex flex-col items-end gap-1.5">
+                  <p className="font-display text-lg font-bold text-dark">₹{Number(pay.amount).toLocaleString('en-IN')}</p>
                   {pay.status === 'pending' && (
                     <button onClick={() => handleMarkAsPaid(pay)} disabled={markingPayment === pay.id}
-                      className="flex items-center gap-1.5 font-body text-xs font-semibold bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60">
-                      <FiCheckCircle size={11} />{markingPayment === pay.id ? 'Sending...' : 'Mark as Paid'}
+                      className="flex items-center gap-1.5 font-body text-sm font-semibold bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60">
+                      <FiCheckCircle size={13} />{markingPayment === pay.id ? 'Saving...' : 'Mark as Paid'}
                     </button>
                   )}
                   {pay.status === 'paid' && (
-                    <a href={waLinks[pay.id] || buildPayWhatsApp(pay)} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 font-body text-xs font-semibold bg-[#25D366] text-white px-3 py-1.5 rounded-lg hover:bg-[#1ebe59] transition-colors">
-                      <FaWhatsapp size={12} /> Send Receipt
+                    <a href={buildPayWhatsApp(pay)} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-3 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors">
+                      <FaWhatsapp size={14} /> Share Receipt
                     </a>
                   )}
                 </div>

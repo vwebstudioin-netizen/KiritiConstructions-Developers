@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { getAllPayments, getAllProjects, getAllClients } from '@/lib/firestore'
+import { getAllPayments, getAllProjects, getAllClients, updatePayment } from '@/lib/firestore'
 import type { Payment, Project, Client } from '@/types'
-import { FiDownload, FiCheckCircle, FiMail } from 'react-icons/fi'
+import { FiDownload, FiCheckCircle, FiCheck } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
 
 const STATUS_COLORS: Record<string, string> = { pending: 'badge-gray', paid: 'badge-green', failed: 'badge-red' }
@@ -10,7 +10,7 @@ const STATUS_COLORS: Record<string, string> = { pending: 'badge-gray', paid: 'ba
 function buildWhatsApp(client: Client, project: Project | undefined, pay: Payment): string {
   const amount = `₹${Number(pay.amount).toLocaleString('en-IN')}`
   const date = pay.paidAt ? new Date(pay.paidAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')
-  const msg = `Dear ${client.name},\n\nThis is to confirm that your payment of *${amount}* for *${pay.description}* has been received by Kiriti Constructions & Developers Pvt. Ltd.\n\nProject: ${project?.title ?? 'Your Project'}\nDate: ${date}\n\nThank you. Please check your client portal for updated project progress.\n\nRegards,\nKiriti Constructions & Developers`
+  const msg = `*Payment Receipt*\n\nDear ${client.name},\n\nWe confirm receipt of your payment:\n\n*Amount:* ${amount}\n*For:* ${pay.description}\n*Project:* ${project?.title ?? 'Your Project'}\n*Date:* ${date}\n\nThank you!\n— Kiriti Constructions & Developers`
   const phone = client.phone.replace(/\D/g, '')
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
 }
@@ -21,8 +21,6 @@ export default function AdminPaymentsPage() {
   const [clients, setClients] = useState<Record<string, Client>>({})
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all')
   const [marking, setMarking] = useState<string | null>(null)
-  const [whatsappLinks, setWhatsappLinks] = useState<Record<string, string>>({})
-  const [message, setMessage] = useState('')
 
   useEffect(() => {
     Promise.all([getAllPayments(), getAllProjects(), getAllClients()]).then(([pays, projs, clts]) => {
@@ -33,23 +31,11 @@ export default function AdminPaymentsPage() {
   }, [])
 
   const markAsPaid = async (pay: Payment) => {
-    if (!confirm(`Mark ₹${(pay.amount / 100000).toFixed(1)}L as PAID?\n\nThis will:\n• Update status to Paid\n• Send email receipt to client\n• Show WhatsApp receipt button`)) return
     setMarking(pay.id)
-    try {
-      const res = await fetch('/api/payments/mark-paid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: pay.id, clientId: pay.clientId, projectId: pay.projectId, amount: pay.amount, description: pay.description }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setPayments((prev) => prev.map((p) => p.id === pay.id ? { ...p, status: 'paid', paidAt: new Date().toISOString() } : p))
-        if (data.whatsappUrl) setWhatsappLinks((prev) => ({ ...prev, [pay.id]: data.whatsappUrl }))
-        setMessage(`Marked as paid. Email receipt sent to ${data.clientName ?? 'client'}.`)
-        setTimeout(() => setMessage(''), 5000)
-      }
-    } catch { setMessage('Error marking payment as paid.') }
-    finally { setMarking(null) }
+    const paidAt = new Date().toISOString()
+    await updatePayment(pay.id, { status: 'paid', paidAt })
+    setPayments((prev) => prev.map((p) => p.id === pay.id ? { ...p, status: 'paid', paidAt } : p))
+    setMarking(null)
   }
 
   const filtered = filter === 'all' ? payments : payments.filter((p) => p.status === filter)
@@ -71,12 +57,6 @@ export default function AdminPaymentsPage() {
         <h1 className="font-display text-3xl text-dark font-bold">Payments</h1>
         <button onClick={exportCSV} className="btn-outline gap-2 text-sm"><FiDownload size={15} /> Export CSV</button>
       </div>
-
-      {message && (
-        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 font-body text-sm flex items-center gap-2">
-          <FiMail size={14} /> {message}
-        </div>
-      )}
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -120,28 +100,34 @@ export default function AdminPaymentsPage() {
                 </p>
               </div>
 
-              {/* Bottom row: action buttons — always visible */}
+              {/* Action buttons */}
               <div className="flex gap-2 flex-wrap">
-                {isPending && (
+                {isPending ? (
                   <button
                     onClick={() => markAsPaid(pay)}
                     disabled={marking === pay.id}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 font-body text-sm font-semibold bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-1.5 font-body text-sm font-semibold bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-60"
                   >
                     <FiCheckCircle size={14} />
-                    {marking === pay.id ? 'Processing...' : 'Mark as Paid'}
+                    {marking === pay.id ? 'Saving...' : 'Mark as Paid'}
                   </button>
-                )}
-                {pay.status === 'paid' && client && (
-                  <a
-                    href={whatsappLinks[pay.id] || buildWhatsApp(client, project, pay)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-4 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors"
-                  >
-                    <FaWhatsapp size={14} /> Send Receipt on WhatsApp
-                  </a>
-                )}
+                ) : pay.status === 'paid' ? (
+                  <>
+                    <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
+                      <FiCheck size={13} /> Paid
+                    </span>
+                    {client && (
+                      <a
+                        href={buildWhatsApp(client, project, pay)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-4 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors"
+                      >
+                        <FaWhatsapp size={15} /> Share Receipt
+                      </a>
+                    )}
+                  </>
+                ) : null}
               </div>
             </div>
           )
@@ -149,11 +135,6 @@ export default function AdminPaymentsPage() {
         {filtered.length === 0 && <p className="text-center font-body text-muted py-8 text-sm">No payments found.</p>}
       </div>
 
-      {/* Legend */}
-      <p className="font-body text-xs text-muted mt-4 p-4 bg-slate rounded-xl border border-gray-100">
-        <strong>Mark as Paid</strong> — Updates to paid, sends email receipt to client + admin automatically. &nbsp;|&nbsp;
-        <strong>Send Receipt (WhatsApp)</strong> — Opens WhatsApp with a pre-filled receipt message ready to tap Send.
-      </p>
     </div>
   )
 }

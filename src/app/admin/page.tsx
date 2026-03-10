@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { getAllProjects, getAllClients, getAllPayments, getAllEnquiries, getAllServices, getAllTeam, getAllSupervisors, getAllDailyReportsByDate, getProjectMaterials } from '@/lib/firestore'
-import type { DailyReport, Project, ProjectMaterial } from '@/types'
-import { FiFolder, FiUserCheck, FiCreditCard, FiMessageSquare, FiTool, FiUsers, FiArrowRight, FiAlertTriangle, FiHardDrive, FiCalendar } from 'react-icons/fi'
+import { getAllProjects, getAllClients, getAllPayments, getAllEnquiries, getAllServices, getAllTeam, getAllSupervisors, getAllDailyReportsByDate, getProjectMaterials, getAllProjectsExpenses } from '@/lib/firestore'
+import type { DailyReport, Project, ProjectMaterial, ProjectExpense } from '@/types'
+import { FiFolder, FiUserCheck, FiCreditCard, FiMessageSquare, FiTool, FiUsers, FiArrowRight, FiAlertTriangle, FiHardDrive, FiCalendar, FiTrendingUp } from 'react-icons/fi'
 import { format } from 'date-fns'
 
 export default function AdminDashboard() {
@@ -15,11 +15,28 @@ export default function AdminDashboard() {
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [todayReports, setTodayReports] = useState<DailyReport[]>([])
   const [allLowStock, setAllLowStock] = useState<{ project: Project; material: ProjectMaterial }[]>([])
+  const [profitData, setProfitData] = useState<{ title: string; id: string; contractValue: number; totalExpenses: number; margin: number; marginPct: number }[]>([])
   const today = format(new Date(), 'yyyy-MM-dd')
 
   useEffect(() => {
     // Load today's daily reports and low stock across all projects
     getAllDailyReportsByDate(today).then(setTodayReports)
+    // Load profit data
+    Promise.all([getAllProjects(), getAllProjectsExpenses()]).then(([projects, allExpenses]) => {
+      const data = projects
+        .filter((p) => (p.totalValue ?? 0) > 0)
+        .map((p) => {
+          const expenses = allExpenses.filter((e) => e.projectId === p.id)
+          const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+          const contractValue = p.totalValue ?? 0
+          const margin = contractValue - totalExpenses
+          const marginPct = contractValue > 0 ? Math.round((margin / contractValue) * 100) : 0
+          return { title: p.title, id: p.id, contractValue, totalExpenses, margin, marginPct }
+        })
+        .sort((a, b) => b.contractValue - a.contractValue)
+        .slice(0, 8)
+      setProfitData(data)
+    })
     getAllProjects().then(async (projects) => {
       const lowStockData: { project: Project; material: ProjectMaterial }[] = []
       for (const proj of projects.filter((p) => p.status === 'ongoing')) {
@@ -168,6 +185,72 @@ export default function AdminDashboard() {
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* Profit Dashboard */}
+      {profitData.length > 0 && (
+        <div className="admin-card mt-6">
+          <h2 className="font-display text-lg text-dark font-bold flex items-center gap-2 mb-5">
+            <FiTrendingUp className="text-accent" size={18} /> Project Profit / Loss
+          </h2>
+          <div className="space-y-3">
+            {profitData.map((p) => {
+              const isLoss = p.margin < 0
+              const expPct = p.contractValue > 0 ? Math.min((p.totalExpenses / p.contractValue) * 100, 100) : 0
+              return (
+                <div key={p.id} className={`p-4 rounded-xl border ${isLoss ? 'bg-red-50 border-red-100' : 'bg-slate border-gray-100'}`}>
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/admin/projects/${p.id}`} className="font-body font-semibold text-dark text-sm hover:text-primary transition-colors truncate block">{p.title}</Link>
+                      <div className="flex gap-4 mt-1 font-body text-xs text-muted flex-wrap">
+                        <span>Contract: ₹{p.contractValue.toLocaleString('en-IN')}</span>
+                        <span>Expenses: ₹{p.totalExpenses.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`font-display text-lg font-bold ${isLoss ? 'text-red-600' : 'text-green-600'}`}>
+                        {isLoss ? '-' : '+'}₹{Math.abs(p.margin).toLocaleString('en-IN')}
+                      </p>
+                      <p className={`font-body text-xs font-semibold ${isLoss ? 'text-red-500' : p.marginPct < 15 ? 'text-amber-600' : 'text-green-600'}`}>
+                        {p.marginPct}% margin
+                      </p>
+                    </div>
+                  </div>
+                  {/* Stacked bar */}
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${isLoss ? 'bg-red-400' : 'bg-green-500'}`} style={{ width: `${expPct}%` }} />
+                  </div>
+                  <div className="flex justify-between font-body text-xs text-muted mt-1">
+                    <span>{Math.round(expPct)}% spent</span>
+                    <span>{100 - Math.round(expPct)}% remaining</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {profitData.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-100 flex gap-6 font-body text-sm">
+              <div>
+                <span className="text-muted">Total Contract</span>
+                <p className="font-display font-bold text-dark">₹{profitData.reduce((s, p) => s + p.contractValue, 0).toLocaleString('en-IN')}</p>
+              </div>
+              <div>
+                <span className="text-muted">Total Expenses</span>
+                <p className="font-display font-bold text-red-500">₹{profitData.reduce((s, p) => s + p.totalExpenses, 0).toLocaleString('en-IN')}</p>
+              </div>
+              <div>
+                <span className="text-muted">Gross Margin</span>
+                <p className="font-display font-bold text-green-600">₹{profitData.reduce((s, p) => s + p.margin, 0).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {profitData.length === 0 && (
+        <div className="admin-card mt-6 text-center py-8">
+          <FiTrendingUp className="text-muted mx-auto mb-2" size={24} />
+          <p className="font-body text-muted text-sm">No expense data yet. Go to <Link href="/admin/projects" className="text-primary underline">Admin → Projects → Expenses tab</Link> to start logging expenses for profit tracking.</p>
         </div>
       )}
     </div>

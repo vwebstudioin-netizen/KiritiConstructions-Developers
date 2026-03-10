@@ -10,6 +10,17 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed'
 export type EnquiryStatus = 'new' | 'contacted' | 'converted' | 'closed'
 export type DocumentType = 'blueprint' | 'estimate' | 'invoice' | 'completion' | 'other'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
+export type ExpenseCategory = 'Materials' | 'Labour' | 'Equipment' | 'Subcontractor' | 'Misc'
+
+export interface ProjectExpense {
+  id: string; projectId: string
+  category: ExpenseCategory
+  description: string
+  amount: number
+  date: string
+  addedBy: string
+  createdAt: string
+}
 
 export interface QuoteLineItem {
   description: string

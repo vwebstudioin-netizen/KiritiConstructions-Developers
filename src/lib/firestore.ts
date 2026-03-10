@@ -7,7 +7,7 @@ import type {
   CompanyInfo, Client, Service, Project, Milestone, ProjectDocument,
   Payment, TeamMember, BlogPost, Enquiry, Testimonial,
   Supervisor, SiteTeamMember, ProjectMaterial, MaterialTransaction, DailyReport,
-  Quote,
+  Quote, ProjectExpense,
 } from '@/types'
 
 // ─── Company ──────────────────────────────────────────────────────
@@ -268,5 +268,26 @@ export async function getAllDailyReportsByDate(date: string): Promise<DailyRepor
   try {
     const q = query(collectionGroup(db, 'dailyReports'), where('date', '==', date))
     const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, projectId: d.ref.parent.parent?.id ?? '', ...d.data() } as DailyReport))
+  } catch { return [] }
+}
+
+// ─── Project Expenses ─────────────────────────────────────────────
+export async function getProjectExpenses(projectId: string): Promise<ProjectExpense[]> {
+  try {
+    const q = query(collection(db, 'projects', projectId, 'expenses'), orderBy('date', 'desc'))
+    const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, projectId, ...d.data() } as ProjectExpense))
+  } catch { return [] }
+}
+export async function addProjectExpense(projectId: string, data: Omit<ProjectExpense, 'id' | 'projectId'>) {
+  return (await addDoc(collection(db, 'projects', projectId, 'expenses'), { ...data, createdAt: new Date().toISOString() })).id
+}
+export async function deleteProjectExpense(projectId: string, expenseId: string) {
+  await deleteDoc(doc(db, 'projects', projectId, 'expenses', expenseId))
+}
+// Get all expenses across all projects for profit dashboard
+export async function getAllProjectsExpenses(): Promise<ProjectExpense[]> {
+  try {
+    const s = await getDocs(collectionGroup(db, 'expenses'))
+    return s.docs.map((d) => ({ id: d.id, projectId: d.ref.parent.parent?.id ?? '', ...d.data() } as ProjectExpense))
   } catch { return [] }
 }

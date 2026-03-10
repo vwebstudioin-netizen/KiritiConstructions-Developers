@@ -10,12 +10,14 @@ import {
   getMaterialTransactions, addMaterialTransaction, deleteMaterialTransaction,
   getDailyReports, addDailyReport, updateDailyReport,
   getSiteTeam, addSiteTeamMember, deleteSiteTeamMember,
+  getProjectExpenses, addProjectExpense, deleteProjectExpense,
 } from '@/lib/firestore'
 import type {
   Project, Milestone, ProjectDocument, Payment, Client,
   MilestoneStatus, DocumentType, PaymentStatus,
   ProjectMaterial, MaterialTransaction, DailyReport, SiteTeamMember,
   MaterialCategory, TransactionType, WeatherCondition,
+  ProjectExpense, ExpenseCategory,
 } from '@/types'
 import { DEFAULT_CONSTRUCTION_MATERIALS } from '@/types'
 import { FiArrowLeft, FiPlus, FiTrash2, FiCheckCircle, FiAlertTriangle, FiArrowDown, FiArrowUp } from 'react-icons/fi'
@@ -25,7 +27,7 @@ import { format } from 'date-fns'
 import PhotoUpload from '@/components/ui/PhotoUpload'
 import ImageUpload from '@/components/ui/ImageUpload'
 
-type Tab = 'overview' | 'images' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments'
+type Tab = 'overview' | 'images' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments' | 'expenses'
 
 const MILESTONE_STATUSES: MilestoneStatus[] = ['pending', 'in-progress', 'completed']
 const DOC_TYPES: DocumentType[] = ['blueprint', 'estimate', 'invoice', 'completion', 'other']
@@ -48,6 +50,8 @@ export default function ProjectManagePage() {
   const [message, setMessage] = useState('')
   const [markingPayment, setMarkingPayment] = useState<string | null>(null)
   const [waLinks, setWaLinks] = useState<Record<string, string>>({})
+  const [expenses, setExpenses] = useState<ProjectExpense[]>([])
+  const [newExpense, setNewExpense] = useState({ category: 'Materials' as ExpenseCategory, description: '', amount: 0, date: new Date().toISOString().split('T')[0], addedBy: 'Admin' })
 
   // Forms
   const [newMilestone, setNewMilestone] = useState({ title: '', description: '', percentage: 0, status: 'pending' as MilestoneStatus, photos: [] as string[], sortOrder: 0 })
@@ -64,10 +68,11 @@ export default function ProjectManagePage() {
       getProjectById(id), getMilestones(id), getDocuments(id),
       getPaymentsByProject(id), getAllClients(),
       getProjectMaterials(id), getMaterialTransactions(id),
-      getDailyReports(id), getSiteTeam(id),
-    ]).then(([p, m, d, pay, c, mats, txns, reports, tm]) => {
+      getDailyReports(id), getSiteTeam(id), getProjectExpenses(id),
+    ]).then(([p, m, d, pay, c, mats, txns, reports, tm, exps]) => {
       setProject(p); setMilestones(m); setDocuments(d); setPayments(pay); setClients(c)
       setMaterials(mats); setTransactions(txns); setDailyReports(reports); setTeam(tm)
+      setExpenses(exps)
     })
   }, [id])
 
@@ -213,6 +218,14 @@ export default function ProjectManagePage() {
     showMsg('Payment request created!')
   }
 
+  const handleAddExpense = async () => {
+    if (!newExpense.description || !newExpense.amount || !id) return
+    const expId = await addProjectExpense(id, { ...newExpense, createdAt: new Date().toISOString() })
+    setExpenses((prev) => [{ ...newExpense, id: expId, projectId: id, createdAt: new Date().toISOString() }, ...prev])
+    setNewExpense({ category: 'Materials', description: '', amount: 0, date: new Date().toISOString().split('T')[0], addedBy: 'Admin' })
+    showMsg('Expense logged!')
+  }
+
   const handleMarkAsPaid = async (pay: Payment) => {
     setMarkingPayment(pay.id)
     const paidAt = new Date().toISOString()
@@ -244,6 +257,7 @@ export default function ProjectManagePage() {
     { key: 'milestones', label: 'Milestones' },
     { key: 'documents', label: 'Documents' },
     { key: 'payments', label: 'Payments' },
+    { key: 'expenses', label: 'Expenses', badge: expenses.length || undefined },
   ]
 
   const totalInward = transactions.filter((t) => t.type === 'inward').reduce((s, t) => s + t.quantity, 0)
@@ -713,20 +727,38 @@ export default function ProjectManagePage() {
           <div className="admin-card space-y-3">
             <h2 className="font-display text-lg text-dark font-bold mb-4">Milestones ({milestones.length})</h2>
             {milestones.map((m) => (
-              <div key={m.id} className="flex items-start justify-between gap-4 p-4 bg-slate rounded-xl border border-gray-100">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="font-body font-semibold text-dark text-sm">{m.title}</span>
-                    <span className="font-body text-xs text-muted">{m.percentage}%</span>
+              <div key={m.id} className="p-4 bg-slate rounded-xl border border-gray-100">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-body font-semibold text-dark text-sm">{m.title}</span>
+                      <span className="font-body text-xs text-muted">{m.percentage}%</span>
+                      <span className={`badge capitalize ${m.status === 'completed' ? 'badge-green' : m.status === 'in-progress' ? 'badge-accent' : 'badge-gray'}`}>{m.status}</span>
+                    </div>
+                    {m.completedAt && <p className="font-body text-xs text-green-600">Completed: {new Date(m.completedAt).toLocaleDateString('en-IN')}</p>}
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {MILESTONE_STATUSES.map((s) => (
+                        <button key={s} onClick={() => handleMilestoneStatus(m.id, s)}
+                          className={`px-2.5 py-1 rounded-lg font-body text-xs capitalize transition-colors ${m.status === s ? 'bg-primary text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}>{s}</button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex gap-2 mt-2">
-                    {MILESTONE_STATUSES.map((s) => (
-                      <button key={s} onClick={() => handleMilestoneStatus(m.id, s)}
-                        className={`px-2.5 py-1 rounded-lg font-body text-xs capitalize transition-colors ${m.status === s ? 'bg-primary text-white' : 'bg-gray-100 text-muted hover:bg-gray-200'}`}>{s}</button>
-                    ))}
-                  </div>
+                  <button onClick={async () => { if (!id || !confirm('Delete?')) return; await deleteMilestone(id, m.id); setMilestones((ms) => ms.filter((x) => x.id !== m.id)) }} className="p-2 rounded-xl text-red-400 bg-red-50 hover:bg-red-100 transition-colors flex-shrink-0"><FiTrash2 size={14} /></button>
                 </div>
-                <button onClick={async () => { if (!id || !confirm('Delete?')) return; await deleteMilestone(id, m.id); setMilestones((ms) => ms.filter((x) => x.id !== m.id)) }} className="p-2 rounded-xl text-red-400 bg-red-50 hover:bg-red-100 transition-colors"><FiTrash2 size={14} /></button>
+                {/* Milestone Photos */}
+                <div className="mt-2">
+                  <ImageUpload
+                    folder={`milestones/${id}/${m.id}`}
+                    value={m.photos ?? []}
+                    onChange={async (urls) => {
+                      if (!id) return
+                      await updateMilestone(id, m.id, { photos: urls })
+                      setMilestones((prev) => prev.map((ms) => ms.id === m.id ? { ...ms, photos: urls } : ms))
+                    }}
+                    maxImages={6}
+                    label="Site Photos"
+                  />
+                </div>
               </div>
             ))}
             {milestones.length === 0 && <p className="text-center font-body text-muted py-6 text-sm">No milestones yet.</p>}
@@ -802,6 +834,111 @@ export default function ProjectManagePage() {
           </div>
         </div>
       )}
+
+      {/* ─── EXPENSES ─── */}
+      {activeTab === 'expenses' && (() => {
+        const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Materials', 'Labour', 'Equipment', 'Subcontractor', 'Misc']
+        const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
+          Materials: 'bg-blue-100 text-blue-700',
+          Labour: 'bg-purple-100 text-purple-700',
+          Equipment: 'bg-orange-100 text-orange-700',
+          Subcontractor: 'bg-teal-100 text-teal-700',
+          Misc: 'bg-gray-100 text-muted',
+        }
+        const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+        const byCategory = EXPENSE_CATEGORIES.map((cat) => ({
+          cat,
+          total: expenses.filter((e) => e.category === cat).reduce((s, e) => s + e.amount, 0),
+        })).filter((c) => c.total > 0)
+        const contractValue = project.totalValue ?? 0
+        const margin = contractValue - totalExpenses
+        const marginPct = contractValue > 0 ? Math.round((margin / contractValue) * 100) : 0
+
+        return (
+          <div className="space-y-5">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="admin-card text-center">
+                <p className="font-display text-xl text-dark font-bold">₹{contractValue.toLocaleString('en-IN')}</p>
+                <p className="font-body text-xs text-muted mt-0.5">Contract Value</p>
+              </div>
+              <div className="admin-card text-center">
+                <p className="font-display text-xl text-red-500 font-bold">₹{totalExpenses.toLocaleString('en-IN')}</p>
+                <p className="font-body text-xs text-muted mt-0.5">Total Expenses</p>
+              </div>
+              <div className={`admin-card text-center ${margin < 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+                <p className={`font-display text-xl font-bold ${margin < 0 ? 'text-red-600' : 'text-green-600'}`}>₹{Math.abs(margin).toLocaleString('en-IN')}</p>
+                <p className="font-body text-xs text-muted mt-0.5">{margin < 0 ? 'Loss' : 'Gross Margin'}</p>
+              </div>
+              <div className={`admin-card text-center ${marginPct < 0 ? 'border-red-200 bg-red-50' : ''}`}>
+                <p className={`font-display text-xl font-bold ${marginPct < 0 ? 'text-red-600' : marginPct < 15 ? 'text-amber-600' : 'text-green-600'}`}>{marginPct}%</p>
+                <p className="font-body text-xs text-muted mt-0.5">Margin %</p>
+              </div>
+            </div>
+
+            {/* Category breakdown */}
+            {byCategory.length > 0 && (
+              <div className="admin-card">
+                <h3 className="font-display text-sm text-dark font-bold mb-3">Expense Breakdown</h3>
+                <div className="space-y-2">
+                  {byCategory.map(({ cat, total }) => (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className={`font-body text-xs font-semibold px-2.5 py-1 rounded-full w-28 text-center flex-shrink-0 ${CATEGORY_COLORS[cat]}`}>{cat}</span>
+                      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${totalExpenses > 0 ? (total / totalExpenses) * 100 : 0}%` }} />
+                      </div>
+                      <span className="font-body text-sm font-semibold text-dark flex-shrink-0">₹{total.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add expense form */}
+            <div className="admin-card">
+              <h2 className="font-display text-lg text-dark font-bold mb-4">Log Expense</h2>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Category *</label>
+                  <select value={newExpense.category} onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value as ExpenseCategory })} className="input-field">
+                    {EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Description *</label>
+                  <input value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} placeholder="e.g. Cement 200 bags — Ramesh Suppliers" className="input-field" />
+                </div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Amount (₹) *</label>
+                  <input type="number" min={0} value={newExpense.amount || ''} onChange={(e) => setNewExpense({ ...newExpense, amount: Number(e.target.value) })} className="input-field" placeholder="e.g. 76000" />
+                </div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Date</label>
+                  <input type="date" value={newExpense.date} onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })} className="input-field" />
+                </div>
+              </div>
+              <button onClick={handleAddExpense} className="btn-primary mt-4 gap-2"><FiPlus size={14} /> Log Expense</button>
+            </div>
+
+            {/* Expense list */}
+            <div className="admin-card space-y-2">
+              <h3 className="font-display text-lg text-dark font-bold mb-4">All Expenses ({expenses.length})</h3>
+              {expenses.map((exp) => (
+                <div key={exp.id} className="flex items-center justify-between gap-4 p-3 bg-slate rounded-xl border border-gray-50">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className={`font-body text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${CATEGORY_COLORS[exp.category]}`}>{exp.category}</span>
+                    <div className="min-w-0">
+                      <p className="font-body text-sm font-medium text-dark truncate">{exp.description}</p>
+                      <p className="font-body text-xs text-muted">{exp.date} · {exp.addedBy}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <p className="font-display text-base font-bold text-dark">₹{exp.amount.toLocaleString('en-IN')}</p>
+                    <button onClick={async () => { if (!id || !confirm('Delete?')) return; await deleteProjectExpense(id, exp.id); setExpenses((prev) => prev.filter((e) => e.id !== exp.id)) }} className="p-1.5 text-red-400 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"><FiTrash2 size={12} /></button>
+                  </div>
+                </div>
+              ))}
+              {expenses.length === 0 && <p className="text-center font-body text-muted py-6 text-sm">No expenses logged yet.</p>}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -183,3 +183,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }
+
+// ─── DELETE — Clear all data ───────────────────────────────────────────────
+export async function DELETE() {
+  try {
+    const TOP_LEVEL = ['company', 'services', 'projects', 'payments', 'testimonials', 'team', 'blog', 'enquiries', 'supervisors', 'clients', 'quotes']
+    const PROJECT_SUBS = ['materials', 'transactions', 'dailyReports', 'team', 'milestones', 'documents']
+
+    // Clear subcollections for all projects first
+    const projectSnap = await adminDb.collection('projects').get()
+    for (const projectDoc of projectSnap.docs) {
+      for (const sub of PROJECT_SUBS) {
+        await clearSubcollection('projects', projectDoc.id, sub)
+      }
+    }
+
+    // Clear top-level collections
+    for (const col of TOP_LEVEL) {
+      await clearCollection(col)
+    }
+
+    return NextResponse.json({ success: true, message: 'All data cleared.' })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ success: false, error: msg }, { status: 500 })
+  }
+}

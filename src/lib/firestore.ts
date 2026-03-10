@@ -38,7 +38,7 @@ export async function deleteClient(id: string) { await deleteDoc(doc(db, 'client
 
 // ─── Services ─────────────────────────────────────────────────────
 export async function getAvailableServices(): Promise<Service[]> {
-  try { const q = query(collection(db, 'services'), where('isAvailable', '==', true), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Service)) } catch { return [] }
+  try { const q = query(collection(db, 'services'), where('isAvailable', '==', true)); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Service)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) } catch { return [] }
 }
 export async function getAllServices(): Promise<Service[]> {
   try { const q = query(collection(db, 'services'), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Service)) } catch { return [] }
@@ -52,7 +52,8 @@ export async function deleteService(id: string) { await deleteDoc(doc(db, 'servi
 
 // ─── Projects ─────────────────────────────────────────────────────
 export async function getVisibleProjects(): Promise<Project[]> {
-  try { const q = query(collection(db, 'projects'), where('isVisible', '==', true), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Project)) } catch { return [] }
+  // No orderBy — avoids composite index requirement. Sort client-side.
+  try { const q = query(collection(db, 'projects'), where('isVisible', '==', true)); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Project)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) } catch { return [] }
 }
 export async function getAllProjects(): Promise<Project[]> {
   try { const q = query(collection(db, 'projects'), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as Project)) } catch { return [] }
@@ -119,7 +120,7 @@ export async function updatePayment(id: string, data: Partial<Payment>) { await 
 
 // ─── Team ─────────────────────────────────────────────────────────
 export async function getVisibleTeam(): Promise<TeamMember[]> {
-  try { const q = query(collection(db, 'team'), where('isVisible', '==', true), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember)) } catch { return [] }
+  try { const q = query(collection(db, 'team'), where('isVisible', '==', true)); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) } catch { return [] }
 }
 export async function getAllTeam(): Promise<TeamMember[]> {
   try { const q = query(collection(db, 'team'), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as TeamMember)) } catch { return [] }
@@ -130,7 +131,7 @@ export async function deleteTeamMember(id: string) { await deleteDoc(doc(db, 'te
 
 // ─── Blog ─────────────────────────────────────────────────────────
 export async function getPublishedPosts(): Promise<BlogPost[]> {
-  try { const q = query(collection(db, 'blog'), where('isPublished', '==', true), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost)) } catch { return [] }
+  try { const q = query(collection(db, 'blog'), where('isPublished', '==', true)); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost)).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)) } catch { return [] }
 }
 export async function getAllPosts(): Promise<BlogPost[]> {
   try { const q = query(collection(db, 'blog'), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost)) } catch { return [] }

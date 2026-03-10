@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { FiDatabase, FiCheckCircle, FiAlertTriangle, FiLoader } from 'react-icons/fi'
+import { FiDatabase, FiCheckCircle, FiAlertTriangle, FiLoader, FiTrash2 } from 'react-icons/fi'
 
 type Section = 'company' | 'services' | 'projects' | 'payments' | 'siteTeams' | 'materials' | 'dailyReports' | 'testimonials' | 'team' | 'blog'
 type Status = 'idle' | 'loading' | 'success' | 'error'
@@ -22,6 +22,8 @@ export default function SeedPage() {
   const [statuses, setStatuses] = useState<Record<string, Status>>({})
   const [messages, setMessages] = useState<Record<string, string>>({})
   const [seedingAll, setSeedingAll] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [clearMessage, setClearMessage] = useState('')
 
   const seed = async (section: Section | 'all') => {
     if (section === 'all') {
@@ -78,6 +80,24 @@ export default function SeedPage() {
     }
   }
 
+  const clearAll = async () => {
+    if (!confirm('DELETE ALL DATA from Firestore?\n\nThis will permanently remove all projects, payments, services, blog posts, team members, and site data.\n\nThis cannot be undone. Are you sure?')) return
+    setClearing(true)
+    setClearMessage('')
+    try {
+      const res = await fetch('/api/seed', { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        setStatuses({})
+        setMessages({})
+        setClearMessage('All data cleared successfully. You can now re-seed.')
+      } else {
+        setClearMessage(`Error: ${data.error ?? 'Failed to clear data.'}`)
+      }
+    } catch { setClearMessage('Error clearing data.') }
+    finally { setClearing(false) }
+  }
+
   const allDone = SECTIONS.every((s) => statuses[s.key] === 'success')
 
   return (
@@ -92,10 +112,32 @@ export default function SeedPage() {
       </p>
 
       {/* Warning */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 font-body text-sm text-amber-700 flex items-start gap-2 mb-6">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 font-body text-sm text-amber-700 flex items-start gap-2 mb-4">
         <FiAlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
         <span>This will replace any existing data in each section with the demo data. Only use this on a fresh database or when you want to reset demo content.</span>
       </div>
+
+      {/* Clear All Data */}
+      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 font-body text-sm flex items-center justify-between gap-4 mb-6">
+        <div>
+          <p className="font-semibold text-red-700">Clear All Data</p>
+          <p className="text-red-500 text-xs mt-0.5">Permanently deletes everything from your Firestore database. Use before re-seeding fresh data.</p>
+        </div>
+        <button
+          onClick={clearAll}
+          disabled={clearing}
+          className="flex items-center gap-1.5 flex-shrink-0 px-4 py-2 bg-red-500 text-white rounded-lg font-semibold text-sm hover:bg-red-600 transition-colors disabled:opacity-60"
+        >
+          <FiTrash2 size={14} />
+          {clearing ? 'Clearing...' : 'Clear All'}
+        </button>
+      </div>
+
+      {clearMessage && (
+        <div className={`mb-4 rounded-xl px-4 py-3 font-body text-sm ${clearMessage.includes('Error') ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700'}`}>
+          {clearMessage}
+        </div>
+      )}
 
       {/* Seed All button */}
       {!allDone && (

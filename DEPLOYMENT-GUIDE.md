@@ -112,7 +112,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Public website data
+    // ── Public website data (read by anyone) ─────────────────────
     match /company/{doc} {
       allow read: if true;
       allow write: if isAuth();
@@ -138,27 +138,64 @@ service cloud.firestore {
       allow write: if isAuth();
     }
 
-    // Projects + all subcollections
+    // ── Projects + all subcollections ────────────────────────────
     match /projects/{projectId} {
       allow read: if true;
       allow write: if isAuth();
-      match /milestones/{id} { allow read, write: if isAuth(); }
-      match /documents/{id} { allow read: if true; allow write: if isAuth(); }
-      match /materials/{id} { allow read, write: if isAuth(); }
-      match /transactions/{id} { allow read, write: if isAuth(); }
-      match /dailyReports/{id} { allow read, write: if isAuth(); }
-      match /team/{id} { allow read, write: if isAuth(); }
+
+      match /milestones/{id} {
+        allow read: if isAuth();
+        allow write: if isAuth();
+      }
+      match /documents/{id} {
+        allow read: if true;
+        allow write: if isAuth();
+      }
+      match /materials/{id} {
+        allow read, write: if isAuth();
+      }
+      match /transactions/{id} {
+        allow read, write: if isAuth();
+      }
+      match /dailyReports/{id} {
+        allow read, write: if isAuth();
+      }
+      match /team/{id} {
+        allow read, write: if isAuth();
+      }
     }
 
-    // Portals & operations
-    match /clients/{id} { allow read, write: if isAuth(); }
-    match /supervisors/{id} { allow read, write: if isAuth(); }
-    match /payments/{id} { allow read, write: if isAuth(); }
-    match /enquiries/{id} { allow read, write: if isAuth(); }
-    match /quotes/{id} { allow read, write: if isAuth(); }
+    // ── Client portal ────────────────────────────────────────────
+    match /clients/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Supervisor portal ────────────────────────────────────────
+    match /supervisors/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Payments ─────────────────────────────────────────────────
+    match /payments/{id} {
+      allow read, write: if isAuth();
+    }
+
+    // ── Quote requests (public form — unauthenticated visitors) ──
+    // write: if true — allows website visitors to submit quote form
+    match /enquiries/{id} {
+      allow read: if isAuth();
+      allow write: if true;
+    }
+
+    // ── Admin quotes (PDF quote generator) ───────────────────────
+    match /quotes/{id} {
+      allow read, write: if isAuth();
+    }
   }
 }
 ```
+
+> **Important:** The `enquiries` collection uses `allow write: if true` so unauthenticated website visitors can submit the "Get a Quote" form. The admin can read all enquiries after logging in.
 
 ---
 

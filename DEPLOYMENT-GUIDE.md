@@ -99,106 +99,63 @@ const firebaseConfig = {
 ## 3. Firestore Security Rules
 
 1. In Firebase Console → **Firestore Database** → **Rules** tab
-2. Replace all existing rules with the following and click **Publish**:
+2. **Select all** existing text → **delete it** → paste the rules below exactly → click **Publish**
+
+> Note: Make sure line 1 starts with `rules_version` — no spaces or characters before it.
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper — is the user authenticated?
     function isAuth() {
       return request.auth != null;
     }
 
-    // Public website data — anyone can read
+    // Public website data
     match /company/{doc} {
       allow read: if true;
       allow write: if isAuth();
     }
-
     match /services/{doc} {
       allow read: if true;
       allow write: if isAuth();
     }
-
     match /team/{doc} {
       allow read: if true;
       allow write: if isAuth();
     }
-
     match /testimonials/{doc} {
-      allow read: if resource.data.isVisible == true || isAuth();
-      allow write: if isAuth();
-    }
-
-    match /blog/{doc} {
-      allow read: if resource.data.isPublished == true || isAuth();
-      allow write: if isAuth();
-    }
-
-    // Projects — public read for visible, full write for authenticated
-    match /projects/{projectId} {
-      allow read: if resource.data.isVisible == true || isAuth();
-      allow write: if isAuth();
-
-      // Subcollections — milestones, documents (restricted read)
-      match /milestones/{milestoneId} {
-        allow read: if isAuth();
-        allow write: if isAuth();
-      }
-
-      match /documents/{docId} {
-        allow read: if resource.data.isClientVisible == true || isAuth();
-        allow write: if isAuth();
-      }
-
-      // Site operations subcollections — only authenticated users
-      match /materials/{materialId} {
-        allow read, write: if isAuth();
-      }
-
-      match /transactions/{txnId} {
-        allow read, write: if isAuth();
-      }
-
-      match /dailyReports/{reportId} {
-        allow read, write: if isAuth();
-      }
-
-      match /team/{memberId} {
-        allow read, write: if isAuth();
-      }
-    }
-
-    // Clients portal data
-    match /clients/{clientId} {
-      allow read: if isAuth() && (
-        request.auth.uid == resource.data.uid || true
-      );
-      allow write: if isAuth();
-    }
-
-    // Supervisors — only authenticated
-    match /supervisors/{supId} {
-      allow read, write: if isAuth();
-    }
-
-    // Payments — only authenticated
-    match /payments/{paymentId} {
-      allow read, write: if isAuth();
-    }
-
-    // Enquiries — only authenticated
-    match /enquiries/{enquiryId} {
-      allow read, write: if isAuth();
-    }
-
-    // Gallery
-    match /gallery/{imageId} {
       allow read: if true;
       allow write: if isAuth();
     }
+    match /blog/{doc} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+    match /gallery/{doc} {
+      allow read: if true;
+      allow write: if isAuth();
+    }
+
+    // Projects + all subcollections
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isAuth();
+      match /milestones/{id} { allow read, write: if isAuth(); }
+      match /documents/{id} { allow read: if true; allow write: if isAuth(); }
+      match /materials/{id} { allow read, write: if isAuth(); }
+      match /transactions/{id} { allow read, write: if isAuth(); }
+      match /dailyReports/{id} { allow read, write: if isAuth(); }
+      match /team/{id} { allow read, write: if isAuth(); }
+    }
+
+    // Portals & operations
+    match /clients/{id} { allow read, write: if isAuth(); }
+    match /supervisors/{id} { allow read, write: if isAuth(); }
+    match /payments/{id} { allow read, write: if isAuth(); }
+    match /enquiries/{id} { allow read, write: if isAuth(); }
+    match /quotes/{id} { allow read, write: if isAuth(); }
   }
 }
 ```
@@ -231,7 +188,7 @@ service firebase.storage {
 Create a file named `.env.local` in the root of the project folder (copy from `.env.local.example`):
 
 ```bash
-# ── Firebase Configuration ──────────────────────────────────────
+# ── Firebase Client SDK ──────────────────────────────────────────
 NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
@@ -239,16 +196,34 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef
 
+# ── Firebase Admin SDK (for seeding data) ───────────────────────
+# Get from: Firebase Console → Project Settings → Service Accounts → Generate New Private Key
+# Minify the downloaded JSON (remove all newlines) and paste it here as one line
+FIREBASE_ADMIN_CREDENTIALS={"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}
+
 # ── Email Notifications (Gmail SMTP) ────────────────────────────
 SMTP_EMAIL=yourcompany@gmail.com
 SMTP_PASSWORD=xxxx xxxx xxxx xxxx     # Gmail App Password (16 chars)
 ADMIN_EMAIL=admin@kiriticonstructions.com
 
 # ── Admin WhatsApp (for low stock alerts) ───────────────────────
-ADMIN_WHATSAPP=919876543210            # Country code + number, no + or spaces
+ADMIN_WHATSAPP=919386655555            # Country code + number, no + or spaces
 ```
 
 > **Never commit .env.local to GitHub.** It is already in .gitignore.
+
+### How to get the Firebase Admin Service Account Key
+
+1. Firebase Console → gear icon → **Project Settings**
+2. Click **"Service accounts"** tab
+3. Click **"Generate new private key"** → **Generate key**
+4. A `.json` file downloads — open it in any text editor
+5. Copy the entire content
+6. Minify it (remove all line breaks) — paste into [jsonminifier.com](https://jsonminifier.com) or use `Ctrl+H` in VS Code to replace `\n` with nothing
+7. Set the minified JSON as the value of `FIREBASE_ADMIN_CREDENTIALS` in `.env.local`
+8. Add the same variable in **Vercel → Project Settings → Environment Variables**
+
+> The Admin SDK is only used server-side for seeding. It bypasses Firestore security rules safely.
 
 ---
 

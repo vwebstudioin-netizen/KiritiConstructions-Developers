@@ -166,6 +166,16 @@ service cloud.firestore {
       match /expenses/{id} {
         allow read, write: if isAuth();
       }
+      match /vendors/{id} {
+        allow read, write: if isAuth();
+      }
+      match /vendorOrders/{id} {
+        allow read, write: if isAuth();
+      }
+      match /units/{id} {
+        allow read: if true;
+        allow write: if isAuth();
+      }
     }
 
     // ── Client portal ────────────────────────────────────────────

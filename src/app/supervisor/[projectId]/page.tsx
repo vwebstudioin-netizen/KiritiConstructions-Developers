@@ -189,7 +189,7 @@ export default function SupervisorProjectPage() {
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Quantity *</label><input type="number" min={0} value={entry.quantity} onChange={(e) => setEntry({ ...entry, quantity: Number(e.target.value) })} placeholder="e.g. 50" className="input-field" /></div>
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Date</label><input type="date" value={entry.date} onChange={(e) => setEntry({ ...entry, date: e.target.value })} className="input-field" /></div>
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Notes (Optional)</label><input value={entry.notes} onChange={(e) => setEntry({ ...entry, notes: e.target.value })} placeholder="Vehicle no., supplier, delivery challan no." className="input-field" /></div>
-            {projectId && entry.materialId && (
+            {projectId && (
               <PhotoUpload
                 projectId={projectId}
                 materialName={materials.find((m) => m.id === entry.materialId)?.name ?? 'material'}
@@ -302,7 +302,7 @@ export default function SupervisorProjectPage() {
                 </div>
                 <div>
                   <p className="font-body text-sm font-medium text-dark">{t.materialName}</p>
-                  <p className="font-body text-xs text-muted">{t.date}{t.notes ? ` · ${t.notes}` : ''}</p>
+                  <p className="font-body text-xs text-muted">{t.date} · {new Date(t.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}{t.notes ? ` · ${t.notes}` : ''}</p>
                   {t.photos && t.photos.length > 0 && (
                     <div className="flex gap-1.5 mt-1.5">
                       {t.photos.map((url, pi) => (

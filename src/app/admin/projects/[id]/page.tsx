@@ -621,10 +621,10 @@ export default function ProjectManagePage() {
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Date *</label><input type="date" value={newEntry.date} onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })} className="input-field" /></div>
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Logged By</label><input value={newEntry.supervisorName} onChange={(e) => setNewEntry({ ...newEntry, supervisorName: e.target.value })} className="input-field" /></div>
             <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Notes (Optional)</label><textarea value={newEntry.notes} onChange={(e) => setNewEntry({ ...newEntry, notes: e.target.value })} rows={2} className="input-field resize-none" placeholder="Vehicle no., supplier name, challan no., etc." /></div>
-            {id && newEntry.materialId && (
+            {id && (
               <PhotoUpload
                 projectId={id}
-                materialName={materials.find((m) => m.id === newEntry.materialId)?.name ?? 'material'}
+                materialName={materials.find((m) => m.id === newEntry.materialId)?.name ?? 'delivery'}
                 onUploaded={(urls) => setNewEntry((prev) => ({ ...prev, photos: urls }))}
                 maxPhotos={3}
               />
@@ -660,7 +660,9 @@ export default function ProjectManagePage() {
                   </div>
                   <div>
                     <p className="font-body text-sm font-medium text-dark">{t.materialName}</p>
-                    <p className="font-body text-xs text-muted">{t.date} · {t.supervisorName}{t.notes ? ` · ${t.notes}` : ''}</p>
+                    <p className="font-body text-xs text-muted">
+                      {t.date} · {new Date(t.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} · {t.supervisorName}{t.notes ? ` · ${t.notes}` : ''}
+                    </p>
                     {t.photos && t.photos.length > 0 && (
                       <div className="flex gap-1.5 mt-1.5">
                         {t.photos.map((url, pi) => (

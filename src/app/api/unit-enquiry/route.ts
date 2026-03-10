@@ -11,41 +11,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Save to Firestore
-    await addUnitEnquiry({
-      projectId, projectTitle, unitId, unitNumber,
-      name, phone, email, message,
-      status: 'new', createdAt: new Date().toISOString(),
-    })
+    // Save to Firestore — wrapped separately so it won't block the response if rules aren't set yet
+    try {
+      await addUnitEnquiry({
+        projectId, projectTitle, unitId, unitNumber,
+        name, phone, email, message,
+        status: 'new', createdAt: new Date().toISOString(),
+      })
+    } catch (dbErr) {
+      console.error('Unit enquiry DB save error (check Firestore rules — unitEnquiries needs write: if true):', dbErr)
+    }
 
-    // Send email to admin
+    // Send email to admin — wrapped separately so email failure won't show error to user
     if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: { user: process.env.SMTP_EMAIL, pass: process.env.SMTP_PASSWORD },
-      })
-      const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_EMAIL
-      const unitInfo = unitNumber ? `Unit: <strong>${unitNumber}</strong><br>` : ''
-      await transporter.sendMail({
-        from: `"${name}" <${process.env.SMTP_EMAIL}>`,
-        to: adminEmail,
-        subject: `New Unit Enquiry — ${unitNumber ? `${unitNumber} | ` : ''}${projectTitle}`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:580px">
-          <div style="background:#1A3C5E;padding:24px 32px;border-radius:12px 12px 0 0">
-            <h2 style="color:white;margin:0">New Unit Enquiry</h2>
-          </div>
-          <div style="background:#f8fafc;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px">
-            <p><b>Project:</b> ${projectTitle}</p>
-            ${unitInfo}
-            <p><b>Name:</b> ${name}</p>
-            <p><b>Phone:</b> ${phone}</p>
-            <p><b>Email:</b> ${email}</p>
-            ${message ? `<p><b>Message:</b> ${message}</p>` : ''}
-            <hr style="margin:16px 0">
-            <p style="color:#64748B;font-size:12px">Manage this enquiry at <a href="/admin/inventory">Admin → Inventory</a></p>
-          </div>
-        </div>`,
-      })
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.SMTP_EMAIL, pass: process.env.SMTP_PASSWORD },
+        })
+        const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_EMAIL
+        const unitInfo = unitNumber ? `Unit: <strong>${unitNumber}</strong><br>` : ''
+        await transporter.sendMail({
+          from: `"${name}" <${process.env.SMTP_EMAIL}>`,
+          to: adminEmail,
+          subject: `New Unit Enquiry — ${unitNumber ? `${unitNumber} | ` : ''}${projectTitle}`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:580px">
+            <div style="background:#1A3C5E;padding:24px 32px;border-radius:12px 12px 0 0">
+              <h2 style="color:white;margin:0">New Unit Enquiry</h2>
+            </div>
+            <div style="background:#f8fafc;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px">
+              <p><b>Project:</b> ${projectTitle}</p>
+              ${unitInfo}
+              <p><b>Name:</b> ${name}</p>
+              <p><b>Phone:</b> ${phone}</p>
+              <p><b>Email:</b> ${email}</p>
+              ${message ? `<p><b>Message:</b> ${message}</p>` : ''}
+              <hr style="margin:16px 0">
+              <p style="color:#64748B;font-size:12px">Manage this enquiry at <a href="/admin/inventory">Admin → Inventory</a></p>
+            </div>
+          </div>`,
+        })
+      } catch (mailErr) {
+        console.error('Unit enquiry email error:', mailErr)
+      }
     }
 
     return NextResponse.json({ success: true })

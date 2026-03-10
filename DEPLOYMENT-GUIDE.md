@@ -194,11 +194,30 @@ service cloud.firestore {
     match /quotes/{id} {
       allow read, write: if isAuth();
     }
+
+    // ── Inventory Projects & Units (public read, admin write) ─────
+    match /inventoryProjects/{projectId} {
+      allow read: if true;
+      allow write: if isAuth();
+      match /units/{unitId} {
+        allow read: if true;
+        allow write: if isAuth();
+      }
+    }
+
+    // ── Unit Enquiries (public submit, admin reads) ───────────────
+    match /unitEnquiries/{id} {
+      allow read: if isAuth();
+      allow write: if true;
+    }
   }
 }
 ```
 
-> **Important:** The `enquiries` collection uses `allow write: if true` so unauthenticated website visitors can submit the "Get a Quote" form. The admin can read all enquiries after logging in.
+> **Important:**
+> - `enquiries` — `write: if true` so website visitors can submit quote forms without logging in
+> - `unitEnquiries` — `write: if true` so customers can enquire about plots/apartments without an account
+> - `inventoryProjects` and `units` — public read so anyone can see availability in real-time
 
 ---
 
@@ -704,6 +723,183 @@ If the client has a portal account:
    - Project progress and milestones
    - Payment history
    - Documents you've shared (blueprints, estimates, invoices)
+
+---
+
+## Manual Testing Workflows
+
+Use these step-by-step checklists to verify every feature works correctly after deployment.
+
+---
+
+### Test 1 — Admin Login & Basic Navigation
+
+1. Open `https://yoursite.com/admin/login`
+2. Enter your admin email and password
+3. Expected: Redirected to `/admin` dashboard
+4. Verify the sidebar shows: Dashboard, Projects, **Inventory**, Supervisors, Quotes, Clients, Payments, Services, Team, Blog, Enquiries, Settings
+5. Click each sidebar item — all pages should load without errors
+
+---
+
+### Test 2 — Seed Initial Data
+
+1. Go to `/admin/seed`
+2. Click **"Seed All Sections at Once"**
+3. Expected: Green success messages for Company, Services, Projects, Team, Testimonials, Blog
+4. Go to `/admin/projects` — should show 6 demo projects
+5. Visit public homepage `/` — should show demo data (services, projects, testimonials)
+
+---
+
+### Test 3 — Create a New Project
+
+1. Go to `/admin/projects` → click **Add Project**
+2. Fill in: Title, Category (Residential), Status (ongoing), Location, Total Value
+3. Upload a cover image
+4. Click **Add**
+5. Expected: Project appears in the list
+6. Click the gear icon → project detail page opens with 9 tabs
+7. Go to **Materials** tab → click **Add Default Materials** → 12 materials appear
+8. Go to **Team** tab → add a team member (name, role, phone)
+9. Go to **Milestones** tab → add 3 milestones
+10. Go to **Payments** tab → create a payment request of ₹2,00,000
+
+---
+
+### Test 4 — Supervisor Portal
+
+1. Go to `/admin/supervisors` → click **Add New Supervisor**
+2. Fill: Name, Phone, Email (`supervisor@test.com`), Password (`test123`)
+3. Select the project you created in Test 3 → click **Create Supervisor Account**
+4. Open a new incognito window → go to `/supervisor/login`
+5. Log in with `supervisor@test.com` / `test123`
+6. Expected: Sees only the assigned project
+7. Click the project → go to **Log Entry** tab
+8. Select a material (e.g. Sand) → type: **Received** → quantity: 10 → click Submit
+9. Expected: Success message, transaction appears in History tab
+10. Log another entry: Sand → **Used** → quantity: 12 (more than inward)
+11. Expected: Low stock alert email sent to admin + WhatsApp alert button appears
+12. Go to **Daily Report** tab → fill in work done, labour count, weather → Submit
+13. Back in admin window: Go to `/admin` dashboard → today's report should appear
+
+---
+
+### Test 5 — Client Portal
+
+1. Go to `/admin/clients` → **Add Client** (name, email, phone, Firebase login)
+2. Create Firebase user for client at Firebase Console → Authentication → Add User
+3. Go to `/admin/projects/[id]` → **Overview** tab → assign client
+4. Open incognito → `/client/login` → log in as client
+5. Expected: Sees their project, milestones, documents, payment dues
+6. Go to admin → project → **Milestones** tab → mark first milestone as **Completed**
+7. Expected: Client gets email notification
+8. Go to admin → project → **Payments** tab → click **Mark as Paid** on the payment
+9. Expected: Status updates to Paid, WhatsApp receipt button appears
+10. Click **Send Receipt (WhatsApp)** → WhatsApp opens with pre-filled message
+
+---
+
+### Test 6 — Inventory (Plots & Apartments)
+
+1. Go to `/admin/inventory` → click **Add Project**
+2. Fill in: Title (e.g. "Green Valley Plots"), Type (plots), Location, Price From (2500000)
+3. Amenities: `DTCP Approved, Gated Community, 24hr Water`
+4. Click **Create**
+5. Click **Manage** on the new project
+6. In **Units Grid** tab → click **Bulk add multiple**
+7. Prefix: `Plot-`, Start: 1, Count: 20, Size: 1200, Unit: sqft, Price: 2500000
+8. Click **Add 20 Units** → grid shows 20 green cards
+9. Click **Plot-3** → modal opens → change status to **Booked** → enter customer name + phone → Save
+10. Click **Plot-7** → change to **Sold** → Save
+11. Expected: Plot-3 turns amber, Plot-7 turns red
+12. Open public site: `https://yoursite.com/plots`
+13. Expected: Green Valley Plots appears with "18 Available" badge
+14. Click the project → unit grid shows 18 green, 1 amber (Booked), 1 red (Sold)
+15. Click any green unit → enquiry form scrolls into view with unit number pre-filled
+16. Fill form (name, phone, email) → Submit
+17. Expected: Success message shown, admin gets email notification
+18. Back in admin → `/admin/inventory/[id]` → **Enquiries** tab → new enquiry appears
+
+---
+
+### Test 7 — Quote Form (Public)
+
+1. Open `https://yoursite.com/quote` in incognito
+2. Fill all fields: Name, Phone, Email, Service Type, Location, Budget
+3. Click **Submit**
+4. Expected: Success message shown
+5. In admin: Go to `/admin/enquiries` → new enquiry appears with status **new**
+6. Admin should also receive an email notification
+
+---
+
+### Test 8 — Material Low Stock Alert
+
+1. In admin: Go to project → **Materials** tab
+2. Note the low stock threshold for Cement (default: 50 bags)
+3. Go to **Log Entry** → select Cement → type: Received → quantity: 30 → Submit
+4. Go to **Log Entry** → select Cement → type: Consumed → quantity: 28 → Submit
+5. Balance = 2 bags (below threshold of 50)
+6. Expected: Low stock alert email sent to admin
+7. Low stock alert panel appears with **Send Alert (WhatsApp)** button
+8. Click the WhatsApp button → WhatsApp opens with alert message
+
+---
+
+### Test 9 — Payment Receipt Flow
+
+1. In admin → `/admin/payments` → find a pending payment
+2. Click **Mark as Paid**
+3. Expected: Status changes to Paid instantly
+4. **Send Receipt (WhatsApp)** button appears — click it
+5. WhatsApp opens with a pre-filled receipt message ready to send to client
+6. In client portal → `/client/payments` → payment shows as Paid
+
+---
+
+### Test 10 — Public Website Health Check
+
+Open each URL and verify it loads correctly:
+
+| URL | Expected |
+|---|---|
+| `/` | Homepage with hero, services, projects, stats |
+| `/about` | Team, company story |
+| `/services` | All 6 services listed |
+| `/services/residential-construction` | Service detail with features |
+| `/projects` | Project grid with category filter |
+| `/projects/4bhk-villa-jubilee-hills` | Project detail page |
+| `/plots` | Inventory projects listing |
+| `/plots/[your-slug]` | Unit grid with colour-coded availability |
+| `/blog` | Blog posts listing |
+| `/contact` | Map, phone, WhatsApp |
+| `/quote` | Quote form |
+| `/client/login` | Client login page |
+| `/supervisor/login` | Supervisor login page |
+
+---
+
+### Test 11 — PWA Install (Mobile)
+
+1. Open the live site on a mobile phone (Android Chrome or iOS Safari)
+2. Android: Tap the 3-dot menu → **Add to Home Screen**
+3. iOS: Tap Share → **Add to Home Screen**
+4. Expected: App icon appears on home screen
+5. Open from home screen → loads like a native app (no browser bar)
+
+---
+
+### Common Issues & Fixes
+
+| Issue | Likely Cause | Fix |
+|---|---|---|
+| "Missing or insufficient permissions" | Firestore rules not published | Publish the rules from Section 3 |
+| Admin page shows no data | Firebase not configured | Add `.env.local` keys + run `/admin/seed` |
+| Emails not sending | SMTP not configured | Add `SMTP_EMAIL`, `SMTP_PASSWORD` to env vars |
+| Images not uploading | Firebase Storage rules not set | Publish Storage rules from Section 4 |
+| Supervisor can't log in | Account not created correctly | Re-create from Admin → Supervisors |
+| "demo-project" in console | `.env.local` missing | Add Firebase keys to `.env.local` / Vercel env vars |
 
 ---
 

@@ -13,6 +13,46 @@ export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 export type ExpenseCategory = 'Materials' | 'Labour' | 'Equipment' | 'Subcontractor' | 'Misc'
 export type VendorType = 'Material Supplier' | 'Subcontractor' | 'Labour Contractor' | 'Equipment Rental' | 'Other'
 export type OrderStatus = 'pending' | 'paid'
+export type InventoryType = 'plots' | 'apartments' | 'villas' | 'floors'
+export type UnitStatus = 'available' | 'booked' | 'sold'
+export type UnitFacing = 'East' | 'West' | 'North' | 'South' | 'NE' | 'NW' | 'SE' | 'SW'
+export type SizeUnit = 'sqft' | 'sqyd' | 'cents' | 'acres' | 'guntas'
+
+export interface InventoryProject {
+  id: string; title: string; slug: string; description: string
+  location: string; type: InventoryType
+  images: string[]; coverImage: string
+  priceFrom: number; priceTo?: number
+  totalUnits: number
+  isVisible: boolean; isFeatured: boolean
+  amenities: string[]
+  mapEmbed?: string
+  createdAt: string
+}
+
+export interface InventoryUnit {
+  id: string; projectId: string
+  unitNumber: string
+  type: 'plot' | 'apartment' | 'villa' | 'floor'
+  size: number; sizeUnit: SizeUnit
+  price: number
+  status: UnitStatus
+  facing?: UnitFacing
+  floor?: number
+  description?: string
+  bookedByName?: string; bookedByPhone?: string; bookedAt?: string
+  sortOrder: number
+}
+
+export interface UnitEnquiry {
+  id: string; projectId: string
+  unitId?: string; unitNumber?: string
+  projectTitle: string
+  name: string; phone: string; email: string
+  message?: string
+  status: EnquiryStatus
+  createdAt: string
+}
 
 export interface ProjectVendor {
   id: string; projectId: string

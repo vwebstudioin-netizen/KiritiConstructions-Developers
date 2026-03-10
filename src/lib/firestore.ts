@@ -8,6 +8,7 @@ import type {
   Payment, TeamMember, BlogPost, Enquiry, Testimonial,
   Supervisor, SiteTeamMember, ProjectMaterial, MaterialTransaction, DailyReport,
   Quote, ProjectExpense, ProjectVendor, VendorOrder,
+  InventoryProject, InventoryUnit, UnitEnquiry,
 } from '@/types'
 
 // ─── Company ──────────────────────────────────────────────────────
@@ -323,4 +324,50 @@ export async function getAllVendorOrders(): Promise<VendorOrder[]> {
     const s = await getDocs(collectionGroup(db, 'vendorOrders'))
     return s.docs.map((d) => ({ id: d.id, projectId: d.ref.parent.parent?.id ?? '', ...d.data() } as VendorOrder))
   } catch { return [] }
+}
+
+// ─── Inventory Projects ───────────────────────────────────────────
+export async function getAllInventoryProjects(): Promise<InventoryProject[]> {
+  try { const q = query(collection(db, 'inventoryProjects'), orderBy('createdAt', 'desc')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryProject)) } catch { return [] }
+}
+export async function getVisibleInventoryProjects(): Promise<InventoryProject[]> {
+  try { const q = query(collection(db, 'inventoryProjects'), where('isVisible', '==', true)); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryProject)) } catch { return [] }
+}
+export async function getInventoryProjectBySlug(slug: string): Promise<InventoryProject | null> {
+  try { const q = query(collection(db, 'inventoryProjects'), where('slug', '==', slug)); const s = await getDocs(q); if (s.empty) return null; const d = s.docs[0]; return { id: d.id, ...d.data() } as InventoryProject } catch { return null }
+}
+export async function addInventoryProject(data: Omit<InventoryProject, 'id'>) {
+  return (await addDoc(collection(db, 'inventoryProjects'), { ...data, createdAt: new Date().toISOString() })).id
+}
+export async function updateInventoryProject(id: string, data: Partial<InventoryProject>) {
+  await updateDoc(doc(db, 'inventoryProjects', id), data)
+}
+export async function deleteInventoryProject(id: string) { await deleteDoc(doc(db, 'inventoryProjects', id)) }
+
+// ─── Inventory Units ──────────────────────────────────────────────
+export async function getInventoryUnits(projectId: string): Promise<InventoryUnit[]> {
+  try { const q = query(collection(db, 'inventoryProjects', projectId, 'units'), orderBy('sortOrder')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, projectId, ...d.data() } as InventoryUnit)) } catch { return [] }
+}
+export async function addInventoryUnit(projectId: string, data: Omit<InventoryUnit, 'id' | 'projectId'>) {
+  return (await addDoc(collection(db, 'inventoryProjects', projectId, 'units'), data)).id
+}
+export async function updateInventoryUnit(projectId: string, unitId: string, data: Partial<InventoryUnit>) {
+  await updateDoc(doc(db, 'inventoryProjects', projectId, 'units', unitId), data)
+}
+export async function deleteInventoryUnit(projectId: string, unitId: string) {
+  await deleteDoc(doc(db, 'inventoryProjects', projectId, 'units', unitId))
+}
+
+// ─── Unit Enquiries ───────────────────────────────────────────────
+export async function getAllUnitEnquiries(): Promise<UnitEnquiry[]> {
+  try { const q = query(collection(db, 'unitEnquiries'), orderBy('createdAt', 'desc')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as UnitEnquiry)) } catch { return [] }
+}
+export async function getUnitEnquiriesByProject(projectId: string): Promise<UnitEnquiry[]> {
+  try { const q = query(collection(db, 'unitEnquiries'), where('projectId', '==', projectId), orderBy('createdAt', 'desc')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, ...d.data() } as UnitEnquiry)) } catch { return [] }
+}
+export async function addUnitEnquiry(data: Omit<UnitEnquiry, 'id'>) {
+  return (await addDoc(collection(db, 'unitEnquiries'), { ...data, createdAt: new Date().toISOString() })).id
+}
+export async function updateUnitEnquiry(id: string, data: Partial<UnitEnquiry>) {
+  await updateDoc(doc(db, 'unitEnquiries', id), data)
 }

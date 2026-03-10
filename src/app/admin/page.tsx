@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { getAllProjects, getAllClients, getAllPayments, getAllEnquiries, getAllServices, getAllTeam, getAllSupervisors, getAllDailyReportsByDate, getProjectMaterials, getAllProjectsExpenses } from '@/lib/firestore'
-import type { DailyReport, Project, ProjectMaterial, ProjectExpense } from '@/types'
-import { FiFolder, FiUserCheck, FiCreditCard, FiMessageSquare, FiTool, FiUsers, FiArrowRight, FiAlertTriangle, FiHardDrive, FiCalendar, FiTrendingUp } from 'react-icons/fi'
+import { getAllProjects, getAllClients, getAllPayments, getAllEnquiries, getAllServices, getAllTeam, getAllSupervisors, getAllDailyReportsByDate, getProjectMaterials, getAllProjectsExpenses, getAllVendorOrders } from '@/lib/firestore'
+import type { DailyReport, Project, ProjectMaterial, ProjectExpense, VendorOrder } from '@/types'
+import { FiFolder, FiUserCheck, FiCreditCard, FiMessageSquare, FiTool, FiUsers, FiArrowRight, FiAlertTriangle, FiHardDrive, FiCalendar, FiTrendingUp, FiShoppingBag } from 'react-icons/fi'
 import { format } from 'date-fns'
 
 export default function AdminDashboard() {
@@ -16,11 +16,15 @@ export default function AdminDashboard() {
   const [todayReports, setTodayReports] = useState<DailyReport[]>([])
   const [allLowStock, setAllLowStock] = useState<{ project: Project; material: ProjectMaterial }[]>([])
   const [profitData, setProfitData] = useState<{ title: string; id: string; contractValue: number; totalExpenses: number; margin: number; marginPct: number }[]>([])
+  const [pendingVendorOrders, setPendingVendorOrders] = useState<VendorOrder[]>([])
   const today = format(new Date(), 'yyyy-MM-dd')
 
   useEffect(() => {
     // Load today's daily reports and low stock across all projects
     getAllDailyReportsByDate(today).then(setTodayReports)
+    // Load pending vendor orders
+    getAllVendorOrders().then((orders) => setPendingVendorOrders(orders.filter((o) => o.status === 'pending')))
+
     // Load profit data
     Promise.all([getAllProjects(), getAllProjectsExpenses()]).then(([projects, allExpenses]) => {
       const data = projects
@@ -109,6 +113,14 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between gap-4 bg-red-50 border border-red-200 rounded-2xl px-5 py-3">
             <p className="font-body text-red-700 font-semibold text-sm flex items-center gap-2"><FiAlertTriangle size={15} /> {allLowStock.length} low stock alert{allLowStock.length > 1 ? 's' : ''} across active sites</p>
             <Link href="/admin/projects" className="font-body text-xs text-red-600 hover:underline">View Projects</Link>
+          </div>
+        )}
+        {pendingVendorOrders.length > 0 && (
+          <div className="flex items-center justify-between gap-4 bg-orange-50 border border-orange-200 rounded-2xl px-5 py-3">
+            <p className="font-body text-orange-700 font-semibold text-sm flex items-center gap-2">
+              <FiShoppingBag size={15} /> ₹{pendingVendorOrders.reduce((s, o) => s + o.amount, 0).toLocaleString('en-IN')} pending vendor payments ({pendingVendorOrders.length} orders)
+            </p>
+            <Link href="/admin/projects" className="font-body text-xs text-orange-600 hover:underline">View Projects</Link>
           </div>
         )}
       </div>

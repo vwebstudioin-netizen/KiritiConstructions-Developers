@@ -11,6 +11,31 @@ export type EnquiryStatus = 'new' | 'contacted' | 'converted' | 'closed'
 export type DocumentType = 'blueprint' | 'estimate' | 'invoice' | 'completion' | 'other'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 export type ExpenseCategory = 'Materials' | 'Labour' | 'Equipment' | 'Subcontractor' | 'Misc'
+export type VendorType = 'Material Supplier' | 'Subcontractor' | 'Labour Contractor' | 'Equipment Rental' | 'Other'
+export type OrderStatus = 'pending' | 'paid'
+
+export interface ProjectVendor {
+  id: string; projectId: string
+  name: string
+  type: VendorType
+  phone: string
+  gstNumber?: string
+  notes?: string
+  createdAt: string
+}
+
+export interface VendorOrder {
+  id: string; projectId: string
+  vendorId: string; vendorName: string
+  description: string         // e.g. "200 bags cement delivery"
+  amount: number
+  date: string
+  status: OrderStatus
+  paidAt?: string
+  expenseId?: string           // linked expense id (auto-created)
+  invoiceNumber?: string
+  createdAt: string
+}
 
 export interface ProjectExpense {
   id: string; projectId: string

@@ -11,6 +11,8 @@ import {
   getDailyReports, addDailyReport, updateDailyReport,
   getSiteTeam, addSiteTeamMember, deleteSiteTeamMember,
   getProjectExpenses, addProjectExpense, deleteProjectExpense,
+  getProjectVendors, addProjectVendor, deleteProjectVendor,
+  getVendorOrders, addVendorOrder, updateVendorOrder, deleteVendorOrder,
 } from '@/lib/firestore'
 import type {
   Project, Milestone, ProjectDocument, Payment, Client,
@@ -18,6 +20,7 @@ import type {
   ProjectMaterial, MaterialTransaction, DailyReport, SiteTeamMember,
   MaterialCategory, TransactionType, WeatherCondition,
   ProjectExpense, ExpenseCategory,
+  ProjectVendor, VendorOrder, VendorType, OrderStatus,
 } from '@/types'
 import { DEFAULT_CONSTRUCTION_MATERIALS } from '@/types'
 import { FiArrowLeft, FiPlus, FiTrash2, FiCheckCircle, FiAlertTriangle, FiArrowDown, FiArrowUp } from 'react-icons/fi'
@@ -27,7 +30,7 @@ import { format } from 'date-fns'
 import PhotoUpload from '@/components/ui/PhotoUpload'
 import ImageUpload from '@/components/ui/ImageUpload'
 
-type Tab = 'overview' | 'images' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments' | 'expenses'
+type Tab = 'overview' | 'images' | 'materials' | 'log-entry' | 'transactions' | 'daily-report' | 'team' | 'milestones' | 'documents' | 'payments' | 'expenses' | 'vendors'
 
 const MILESTONE_STATUSES: MilestoneStatus[] = ['pending', 'in-progress', 'completed']
 const DOC_TYPES: DocumentType[] = ['blueprint', 'estimate', 'invoice', 'completion', 'other']
@@ -52,6 +55,10 @@ export default function ProjectManagePage() {
   const [waLinks, setWaLinks] = useState<Record<string, string>>({})
   const [expenses, setExpenses] = useState<ProjectExpense[]>([])
   const [newExpense, setNewExpense] = useState({ category: 'Materials' as ExpenseCategory, description: '', amount: 0, date: new Date().toISOString().split('T')[0], addedBy: 'Admin' })
+  const [vendors, setVendors] = useState<ProjectVendor[]>([])
+  const [vendorOrders, setVendorOrders] = useState<VendorOrder[]>([])
+  const [newVendor, setNewVendor] = useState({ name: '', type: 'Material Supplier' as VendorType, phone: '', gstNumber: '', notes: '' })
+  const [newOrder, setNewOrder] = useState({ vendorId: '', description: '', amount: 0, date: new Date().toISOString().split('T')[0], invoiceNumber: '' })
 
   // Forms
   const [newMilestone, setNewMilestone] = useState({ title: '', description: '', percentage: 0, status: 'pending' as MilestoneStatus, photos: [] as string[], sortOrder: 0 })
@@ -69,10 +76,11 @@ export default function ProjectManagePage() {
       getPaymentsByProject(id), getAllClients(),
       getProjectMaterials(id), getMaterialTransactions(id),
       getDailyReports(id), getSiteTeam(id), getProjectExpenses(id),
-    ]).then(([p, m, d, pay, c, mats, txns, reports, tm, exps]) => {
+      getProjectVendors(id), getVendorOrders(id),
+    ]).then(([p, m, d, pay, c, mats, txns, reports, tm, exps, vends, orders]) => {
       setProject(p); setMilestones(m); setDocuments(d); setPayments(pay); setClients(c)
       setMaterials(mats); setTransactions(txns); setDailyReports(reports); setTeam(tm)
-      setExpenses(exps)
+      setExpenses(exps); setVendors(vends); setVendorOrders(orders)
     })
   }, [id])
 
@@ -226,6 +234,49 @@ export default function ProjectManagePage() {
     showMsg('Expense logged!')
   }
 
+  const handleAddVendor = async () => {
+    if (!newVendor.name || !id) return
+    const vendorId = await addProjectVendor(id, { ...newVendor, createdAt: new Date().toISOString() })
+    setVendors((prev) => [...prev, { ...newVendor, id: vendorId, projectId: id, createdAt: new Date().toISOString() }])
+    setNewVendor({ name: '', type: 'Material Supplier', phone: '', gstNumber: '', notes: '' })
+    showMsg('Vendor added!')
+  }
+
+  const handleAddOrder = async () => {
+    if (!newOrder.vendorId || !newOrder.description || !newOrder.amount || !id) return
+    const vendor = vendors.find((v) => v.id === newOrder.vendorId)
+    if (!vendor) return
+    // 1. Create vendor order
+    const orderId = await addVendorOrder(id, {
+      ...newOrder, vendorName: vendor.name, status: 'pending', createdAt: new Date().toISOString(),
+    })
+    // 2. Auto-create project expense so profit dashboard updates
+    const expCategory: ExpenseCategory = vendor.type === 'Labour Contractor' ? 'Labour' : vendor.type === 'Equipment Rental' ? 'Equipment' : vendor.type === 'Subcontractor' ? 'Subcontractor' : 'Materials'
+    const expId = await addProjectExpense(id, {
+      category: expCategory,
+      description: `${vendor.name} — ${newOrder.description}${newOrder.invoiceNumber ? ` (Inv: ${newOrder.invoiceNumber})` : ''}`,
+      amount: newOrder.amount,
+      date: newOrder.date,
+      addedBy: 'Auto (Vendor Order)',
+      createdAt: new Date().toISOString(),
+    })
+    // 3. Link expense id to order
+    await updateVendorOrder(id, orderId, { expenseId: expId })
+    const order: VendorOrder = { ...newOrder, id: orderId, projectId: id, vendorName: vendor.name, status: 'pending', expenseId: expId, createdAt: new Date().toISOString() }
+    setVendorOrders((prev) => [order, ...prev])
+    setExpenses((prev) => [{ category: expCategory, description: `${vendor.name} — ${newOrder.description}`, amount: newOrder.amount, date: newOrder.date, addedBy: 'Auto (Vendor Order)', id: expId, projectId: id, createdAt: new Date().toISOString() }, ...prev])
+    setNewOrder({ vendorId: '', description: '', amount: 0, date: new Date().toISOString().split('T')[0], invoiceNumber: '' })
+    showMsg(`Order logged and expense deducted from profit automatically!`)
+  }
+
+  const handleMarkOrderPaid = async (order: VendorOrder) => {
+    if (!id) return
+    const paidAt = new Date().toISOString()
+    await updateVendorOrder(id, order.id, { status: 'paid', paidAt })
+    setVendorOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, status: 'paid', paidAt } : o))
+    showMsg(`Payment to ${order.vendorName} marked as paid.`)
+  }
+
   const handleMarkAsPaid = async (pay: Payment) => {
     setMarkingPayment(pay.id)
     const paidAt = new Date().toISOString()
@@ -258,6 +309,7 @@ export default function ProjectManagePage() {
     { key: 'documents', label: 'Documents' },
     { key: 'payments', label: 'Payments' },
     { key: 'expenses', label: 'Expenses', badge: expenses.length || undefined },
+    { key: 'vendors', label: 'Vendors', badge: vendorOrders.filter((o) => o.status === 'pending').length || undefined },
   ]
 
   const totalInward = transactions.filter((t) => t.type === 'inward').reduce((s, t) => s + t.quantity, 0)
@@ -834,6 +886,144 @@ export default function ProjectManagePage() {
           </div>
         </div>
       )}
+
+      {/* ─── VENDORS ─── */}
+      {activeTab === 'vendors' && (() => {
+        const VENDOR_TYPES: VendorType[] = ['Material Supplier', 'Subcontractor', 'Labour Contractor', 'Equipment Rental', 'Other']
+        const TYPE_COLORS: Record<VendorType, string> = {
+          'Material Supplier': 'bg-blue-100 text-blue-700',
+          'Subcontractor': 'bg-purple-100 text-purple-700',
+          'Labour Contractor': 'bg-green-100 text-green-700',
+          'Equipment Rental': 'bg-orange-100 text-orange-700',
+          'Other': 'bg-gray-100 text-muted',
+        }
+        const totalPending = vendorOrders.filter((o) => o.status === 'pending').reduce((s, o) => s + o.amount, 0)
+        const totalPaid = vendorOrders.filter((o) => o.status === 'paid').reduce((s, o) => s + o.amount, 0)
+
+        return (
+          <div className="space-y-5">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="admin-card text-center">
+                <p className="font-display text-xl text-dark font-bold">{vendors.length}</p>
+                <p className="font-body text-xs text-muted">Vendors</p>
+              </div>
+              <div className={`admin-card text-center ${totalPending > 0 ? 'border-amber-200 bg-amber-50' : ''}`}>
+                <p className={`font-display text-xl font-bold ${totalPending > 0 ? 'text-amber-600' : 'text-dark'}`}>₹{totalPending.toLocaleString('en-IN')}</p>
+                <p className="font-body text-xs text-muted">Pending Payment</p>
+              </div>
+              <div className="admin-card text-center">
+                <p className="font-display text-xl text-green-600 font-bold">₹{totalPaid.toLocaleString('en-IN')}</p>
+                <p className="font-body text-xs text-muted">Paid to Vendors</p>
+              </div>
+            </div>
+
+            {/* Add Vendor */}
+            <div className="admin-card">
+              <h3 className="font-display text-lg text-dark font-bold mb-4">Add Vendor / Supplier</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Name *</label><input value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })} placeholder="e.g. Ramesh Steel Traders" className="input-field" /></div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Type</label>
+                  <select value={newVendor.type} onChange={(e) => setNewVendor({ ...newVendor, type: e.target.value as VendorType })} className="input-field">
+                    {VENDOR_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Phone</label><input value={newVendor.phone} onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })} className="input-field" /></div>
+                <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">GST Number</label><input value={newVendor.gstNumber} onChange={(e) => setNewVendor({ ...newVendor, gstNumber: e.target.value })} placeholder="27XXXXX" className="input-field" /></div>
+              </div>
+              <button onClick={handleAddVendor} className="btn-primary mt-4 gap-2"><FiPlus size={14} /> Add Vendor</button>
+            </div>
+
+            {/* Vendor list */}
+            {vendors.length > 0 && (
+              <div className="admin-card">
+                <h3 className="font-display text-base text-dark font-bold mb-3">Vendors ({vendors.length})</h3>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {vendors.map((v) => {
+                    const vOrders = vendorOrders.filter((o) => o.vendorId === v.id)
+                    const vPending = vOrders.filter((o) => o.status === 'pending').reduce((s, o) => s + o.amount, 0)
+                    return (
+                      <div key={v.id} className={`p-3 rounded-xl border ${vPending > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-100 bg-slate'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-body font-semibold text-dark text-sm truncate">{v.name}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className={`font-body text-xs px-2 py-0.5 rounded-full ${TYPE_COLORS[v.type]}`}>{v.type}</span>
+                              {v.phone && <span className="font-body text-xs text-muted">{v.phone}</span>}
+                            </div>
+                            {vPending > 0 && <p className="font-body text-xs text-amber-600 font-semibold mt-1">Due: ₹{vPending.toLocaleString('en-IN')}</p>}
+                          </div>
+                          <button onClick={async () => { if (!id || !confirm('Remove vendor?')) return; await deleteProjectVendor(id, v.id); setVendors((prev) => prev.filter((x) => x.id !== v.id)) }} className="p-1.5 text-red-400 bg-red-50 rounded-lg hover:bg-red-100 flex-shrink-0"><FiTrash2 size={12} /></button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Place Order */}
+            {vendors.length > 0 && (
+              <div className="admin-card">
+                <h3 className="font-display text-lg text-dark font-bold mb-2">Place Order / Log Bill</h3>
+                <p className="font-body text-xs text-muted mb-4">Adding an order automatically deducts from the project profit.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Vendor *</label>
+                    <select value={newOrder.vendorId} onChange={(e) => setNewOrder({ ...newOrder, vendorId: e.target.value })} className="input-field">
+                      <option value="">Select vendor...</option>
+                      {vendors.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.type})</option>)}
+                    </select>
+                  </div>
+                  <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Description *</label><input value={newOrder.description} onChange={(e) => setNewOrder({ ...newOrder, description: e.target.value })} placeholder="e.g. 200 bags cement, 2 loads sand" className="input-field" /></div>
+                  <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Amount (₹) *</label><input type="number" min={0} value={newOrder.amount || ''} onChange={(e) => setNewOrder({ ...newOrder, amount: Number(e.target.value) })} placeholder="e.g. 76000" className="input-field" /></div>
+                  <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Date</label><input type="date" value={newOrder.date} onChange={(e) => setNewOrder({ ...newOrder, date: e.target.value })} className="input-field" /></div>
+                  <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Invoice / Challan No.</label><input value={newOrder.invoiceNumber} onChange={(e) => setNewOrder({ ...newOrder, invoiceNumber: e.target.value })} placeholder="e.g. INV-2025-042" className="input-field" /></div>
+                </div>
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl font-body text-xs text-amber-700">
+                  This order will be automatically added as a project expense — profit dashboard will update instantly.
+                </div>
+                <button onClick={handleAddOrder} className="btn-primary mt-4 gap-2"><FiPlus size={14} /> Log Order &amp; Deduct from Profit</button>
+              </div>
+            )}
+
+            {/* Orders list */}
+            <div className="admin-card space-y-2">
+              <h3 className="font-display text-lg text-dark font-bold mb-4">All Orders ({vendorOrders.length})</h3>
+              {vendorOrders.map((order) => (
+                <div key={order.id} className={`p-3 rounded-xl border ${order.status === 'pending' ? 'bg-amber-50 border-amber-200' : 'bg-slate border-gray-50'}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm font-semibold text-dark">{order.vendorName}</p>
+                      <p className="font-body text-xs text-muted">{order.description}</p>
+                      <p className="font-body text-xs text-muted">{order.date}{order.invoiceNumber ? ` · Inv: ${order.invoiceNumber}` : ''}</p>
+                      {order.status === 'paid' && order.paidAt && <p className="font-body text-xs text-green-600">Paid: {new Date(order.paidAt).toLocaleDateString('en-IN')}</p>}
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <p className="font-display text-base font-bold text-dark">₹{order.amount.toLocaleString('en-IN')}</p>
+                      {order.status === 'pending' ? (
+                        <button onClick={() => handleMarkOrderPaid(order)} className="font-body text-xs font-semibold bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1">
+                          <FiCheckCircle size={11} /> Mark Paid
+                        </button>
+                      ) : (
+                        <span className="font-body text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">Paid</span>
+                      )}
+                      <button onClick={async () => {
+                        if (!id || !confirm('Delete order?')) return
+                        await deleteVendorOrder(id, order.id)
+                        // also remove linked expense
+                        if (order.expenseId) { await (await import('@/lib/firestore')).deleteProjectExpense(id, order.expenseId); setExpenses((prev) => prev.filter((e) => e.id !== order.expenseId)) }
+                        setVendorOrders((prev) => prev.filter((o) => o.id !== order.id))
+                        showMsg('Order and linked expense deleted.')
+                      }} className="p-1 text-red-400 hover:bg-red-50 rounded-lg"><FiTrash2 size={12} /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {vendorOrders.length === 0 && <p className="text-center font-body text-muted py-6 text-sm">No orders yet. Add vendors above and place orders.</p>}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ─── EXPENSES ─── */}
       {activeTab === 'expenses' && (() => {

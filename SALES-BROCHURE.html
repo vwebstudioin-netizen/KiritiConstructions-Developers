@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Construction Business Management System — Sales Brochure</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background: #fff; }
+
+    /* ── Colours ── */
+    :root {
+      --primary: #1A3C5E;
+      --accent: #F59E0B;
+      --light: #EEF3F8;
+      --muted: #64748b;
+      --green: #22c55e;
+      --red: #ef4444;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1A3C5E 0%, #122B44 100%);
+      padding: 80px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle at 70% 30%, rgba(245,158,11,0.08) 0%, transparent 60%);
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.4);
+      color: #F59E0B;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      max-width: 800px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 span { color: #F59E0B; }
+    .hero p {
+      font-size: 18px;
+      color: rgba(255,255,255,0.65);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: #F59E0B;
+      color: #1A3C5E;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-outline {
+      border: 2px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    /* ── PAIN POINTS ── */
+    .pain { background: #fef3c7; padding: 60px 40px; }
+    .pain-inner { max-width: 960px; margin: 0 auto; }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .pain h2 { font-size: 30px; font-weight: 800; color: var(--primary); margin-bottom: 40px; }
+    .pain-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+    .pain-card {
+      background: #fff;
+      border-left: 4px solid #F59E0B;
+      padding: 20px 24px;
+      border-radius: 0 12px 12px 0;
+    }
+    .pain-card h3 { font-size: 15px; font-weight: 700; color: #1A3C5E; margin-bottom: 6px; }
+    .pain-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── SOLUTION ── */
+    .solution { padding: 80px 40px; background: #fff; }
+    .solution-inner { max-width: 1100px; margin: 0 auto; text-align: center; }
+    .solution h2 { font-size: 34px; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+    .solution > .solution-inner > p { font-size: 17px; color: var(--muted); max-width: 640px; margin: 0 auto 60px; line-height: 1.7; }
+
+    /* ── FEATURES ── */
+    .features { padding: 20px 40px 80px; background: #fff; }
+    .features-inner { max-width: 1100px; margin: 0 auto; }
+    .feature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-bottom: 80px; }
+    .feature-block.reverse { direction: rtl; }
+    .feature-block.reverse > * { direction: ltr; }
+    .feature-img {
+      background: var(--light);
+      border-radius: 20px;
+      padding: 40px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-img::before {
+      content: '';
+      position: absolute;
+      bottom: -30px; right: -30px;
+      width: 150px; height: 150px;
+      background: rgba(26,60,94,0.06);
+      border-radius: 50%;
+    }
+    .feat-number {
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(26,60,94,0.07);
+      position: absolute;
+      top: 10px; right: 20px;
+      line-height: 1;
+    }
+    .mock-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      margin-bottom: 12px;
+    }
+    .mock-card h4 { font-size: 13px; font-weight: 700; color: #1A3C5E; margin-bottom: 4px; }
+    .mock-card p { font-size: 12px; color: var(--muted); }
+    .mock-stat { display: flex; gap: 12px; margin-top: 4px; }
+    .stat-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .stat-green { background: #dcfce7; color: #16a34a; }
+    .stat-amber { background: #fef3c7; color: #b45309; }
+    .stat-blue { background: #dbeafe; color: #1d4ed8; }
+    .stat-red { background: #fee2e2; color: #dc2626; }
+
+    .feature-text h3 { font-size: 26px; font-weight: 800; color: var(--primary); margin-bottom: 12px; }
+    .feature-text .tagline { font-size: 14px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    .feature-text p { font-size: 15px; color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
+    .benefit-list { list-style: none; }
+    .benefit-list li { font-size: 14px; color: #1e293b; padding: 8px 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 10px; }
+    .benefit-list li:last-child { border-bottom: none; }
+    .check { color: #22c55e; font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── WHO IS IT FOR ── */
+    .who { background: var(--light); padding: 80px 40px; }
+    .who-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
+    .who h2 { font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+    .who > .who-inner > p { font-size: 16px; color: var(--muted); margin-bottom: 50px; }
+    .who-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+    .who-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .who-icon {
+      width: 56px; height: 56px;
+      background: var(--primary);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 24px;
+    }
+    .who-card h3 { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .who-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── PORTALS OVERVIEW ── */
+    .portals { padding: 80px 40px; background: #fff; }
+    .portals-inner { max-width: 1000px; margin: 0 auto; }
+    .portals h2 { font-size: 32px; font-weight: 800; color: var(--primary); text-align: center; margin-bottom: 8px; }
+    .portals-sub { text-align: center; font-size: 16px; color: var(--muted); margin-bottom: 50px; }
+    .portals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .portal-card {
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .portal-card.admin-card-p { background: linear-gradient(135deg, #1A3C5E, #122B44); color: #fff; }
+    .portal-card.super-card { background: linear-gradient(135deg, #064e3b, #065f46); color: #fff; }
+    .portal-card.client-card { background: linear-gradient(135deg, #1e3a5f, #1A3C5E); border: 2px solid var(--light); color: var(--primary); background: var(--light); }
+    .portal-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .portal-who { font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; margin-bottom: 20px; }
+    .portal-item { font-size: 13px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px; }
+    .client-card .portal-item { border-color: rgba(26,60,94,0.1); }
+    .portal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    /* ── RESULTS ── */
+    .results { background: var(--primary); padding: 80px 40px; }
+    .results-inner { max-width: 960px; margin: 0 auto; text-align: center; }
+    .results h2 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .results-sub { font-size: 16px; color: rgba(255,255,255,0.6); margin-bottom: 50px; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 24px; margin-bottom: 50px; }
+    .result-stat {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 32px 20px;
+    }
+    .result-stat .number { font-size: 42px; font-weight: 900; color: var(--accent); line-height: 1; margin-bottom: 8px; }
+    .result-stat p { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.5; }
+
+    /* ── TESTIMONIAL ── */
+    .testimonial-box {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 16px;
+      padding: 32px 40px;
+      text-align: left;
+    }
+    .testimonial-box blockquote { font-size: 18px; color: rgba(255,255,255,0.9); font-style: italic; line-height: 1.7; margin-bottom: 16px; }
+    .testimonial-box cite { font-size: 13px; color: var(--accent); font-style: normal; font-weight: 600; }
+
+    /* ── PRICING ── */
+    .pricing { padding: 80px 40px; background: #f8fafc; }
+    .pricing-inner { max-width: 900px; margin: 0 auto; text-align: center; }
+    .pricing h2 { font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+    .pricing-sub { font-size: 16px; color: var(--muted); margin-bottom: 50px; }
+    .pricing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+    .price-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 32px;
+      border: 2px solid #e2e8f0;
+      text-align: left;
+      position: relative;
+    }
+    .price-card.featured {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+    .popular-badge {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 16px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .price-card h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+    .price-card.featured h3 { color: #fff; }
+    .price-amount { font-size: 36px; font-weight: 900; color: var(--primary); margin: 16px 0 4px; }
+    .price-card.featured .price-amount { color: var(--accent); }
+    .price-period { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    .price-card.featured .price-period { color: rgba(255,255,255,0.6); }
+    .price-features { list-style: none; }
+    .price-features li { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; display: flex; gap: 10px; color: #374151; }
+    .price-card.featured .price-features li { border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+    .price-features li:last-child { border-bottom: none; }
+    .price-btn {
+      display: block;
+      text-align: center;
+      margin-top: 28px;
+      padding: 13px 24px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      background: var(--light);
+      color: var(--primary);
+    }
+    .price-card.featured .price-btn { background: var(--accent); color: var(--primary); }
+
+    /* ── CTA ── */
+    .cta { background: var(--accent); padding: 80px 40px; text-align: center; }
+    .cta h2 { font-size: 36px; font-weight: 900; color: var(--primary); margin-bottom: 12px; }
+    .cta p { font-size: 18px; color: rgba(26,60,94,0.7); margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .cta-btn-primary {
+      background: var(--primary);
+      color: #fff;
+      padding: 16px 40px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+    }
+    .cta-btn-outline {
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 16px 40px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+    }
+
+    /* ── FOOTER ── */
+    footer { background: #0f1e2e; padding: 40px; text-align: center; }
+    footer p { font-size: 13px; color: rgba(255,255,255,0.3); }
+    footer strong { color: rgba(255,255,255,0.6); }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: #e2e8f0; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .feature-block, .feature-block.reverse { grid-template-columns: 1fr; direction: ltr; }
+      .hero { padding: 60px 24px; }
+      .pain, .solution, .features, .who, .portals, .results, .pricing, .cta { padding: 60px 24px; }
+    }
+
+    @media print {
+      body { font-size: 12px; }
+      .hero { padding: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ────────────── HERO ────────────── -->
+<section class="hero">
+  <div class="hero-badge">Construction Business Management</div>
+  <h1>Run Your Construction Business<br><span>Without the Chaos</span></h1>
+  <p>One platform for your website, client portal, site supervisors, material tracking, payment management, and business dashboard — built specifically for construction companies in India.</p>
+  <div class="hero-btns">
+    <a href="#features" class="btn-primary">See What It Does</a>
+    <a href="#pricing" class="btn-outline">View Pricing</a>
+  </div>
+</section>
+
+<!-- ────────────── PAIN POINTS ────────────── -->
+<section class="pain">
+  <div class="pain-inner">
+    <p class="section-label">The Real Problem</p>
+    <h2>Sound Familiar?</h2>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <h3>Clients call you every day asking for updates</h3>
+        <p>You spend 2–3 hours a day on update calls. Clients don't know milestone status, payment history, or what documents are available.</p>
+      </div>
+      <div class="pain-card">
+        <h3>You don't know if your project is profitable</h3>
+        <p>Materials are purchased, labour is paid, subcontractors are billed — but nobody knows the actual cost vs the contract value until it's too late.</p>
+      </div>
+      <div class="pain-card">
+        <h3>Materials disappear from site with no record</h3>
+        <p>Sand, cement, steel — all delivered without a proper log. No way to verify if what was billed was actually used. Wastage and theft go undetected.</p>
+      </div>
+      <div class="pain-card">
+        <h3>Supervisors report verbally, nothing is documented</h3>
+        <p>Daily work, labour count, weather delays — all stored in memory or a rough notebook. When disputes arise, there's no written proof of what happened.</p>
+      </div>
+      <div class="pain-card">
+        <h3>Collecting payments is awkward and slow</h3>
+        <p>Chasing clients for due payments with no formal record system. No receipts, no payment history, no WhatsApp confirmation — just verbal agreements.</p>
+      </div>
+      <div class="pain-card">
+        <h3>Your website looks unprofessional or doesn't exist</h3>
+        <p>Potential clients Google you and find nothing — or a basic page that doesn't show your projects, services, or credibility. You're losing business you don't even know about.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────── SOLUTION ────────────── -->
+<section class="solution">
+  <div class="solution-inner">
+    <p class="section-label" style="color:var(--primary);">The Solution</p>
+    <h2>One System That Runs Your Entire Construction Business</h2>
+    <p>We build and set up a complete digital management system for your construction company — your website, client portal, supervisor app, and admin dashboard, all in one.</p>
+  </div>
+</section>
+
+<!-- ────────────── FEATURES ────────────── -->
+<section class="features" id="features">
+  <div class="features-inner">
+
+    <!-- Feature 1: Website -->
+    <div class="feature-block">
+      <div class="feature-img">
+        <span class="feat-number">01</span>
+        <div class="mock-card">
+          <h4>Kiriti Constructions &amp; Developers Pvt. Ltd.</h4>
+          <p>Trusted Builders Since 2020 — Hyderabad</p>
+          <div class="mock-stat">
+            <span class="stat-pill stat-green">48 Projects</span>
+            <span class="stat-pill stat-blue">6 Years</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <h4>Featured Projects</h4>
+          <p>4BHK Villa · Commercial Complex · Apartment Block</p>
+        </div>
+        <div class="mock-card" style="display:flex;gap:8px;align-items:center;">
+          <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;"></div>
+          <p style="font-size:12px;">Get a Free Quote · Contact Us · Our Services</p>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Professional Website</p>
+        <h3>A Website That Wins You Clients Before You Even Pick Up the Phone</h3>
+        <p>Your custom website showcases your completed projects with photos, lists all your services, displays client testimonials, and has a working "Get a Quote" form — so clients can reach you 24/7 even when you're on site.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Project gallery with real photos — before &amp; after showcase</li>
+          <li><span class="check">✓</span> Services pages with detailed descriptions and features</li>
+          <li><span class="check">✓</span> Quote request form — enquiries land directly in your dashboard</li>
+          <li><span class="check">✓</span> Blog to establish expertise and improve Google ranking</li>
+          <li><span class="check">✓</span> WhatsApp button, phone click-to-call, Google Maps integration</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 2: Client Portal -->
+    <div class="feature-block reverse">
+      <div class="feature-img">
+        <span class="feat-number">02</span>
+        <div class="mock-card" style="border-left:3px solid #F59E0B;">
+          <h4>G+3 Apartment Block — Miyapur</h4>
+          <div class="mock-stat" style="margin-top:6px;">
+            <span class="stat-pill stat-green">3rd Floor: Complete ✓</span>
+          </div>
+          <div class="mock-stat" style="margin-top:4px;">
+            <span class="stat-pill stat-amber">Finishing: In Progress</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <h4>Payments</h4>
+          <div class="mock-stat">
+            <span class="stat-pill stat-green">₹90L Paid</span>
+            <span class="stat-pill stat-amber">₹30L Pending</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <h4>Documents</h4>
+          <p style="font-size:12px;">Floor Plan · Estimate · Invoice · Completion Certificate</p>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Client Portal</p>
+        <h3>Stop Answering "What Stage is My Project?" Calls</h3>
+        <p>Your clients get their own secure login where they can check project progress, see milestone photos, download documents, and view payment history — any time, from any device.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Live milestone progress with site photos at each stage</li>
+          <li><span class="check">✓</span> Complete payment history — paid, pending, receipt download</li>
+          <li><span class="check">✓</span> Document access — blueprints, estimates, invoices</li>
+          <li><span class="check">✓</span> Clients feel informed and professional — fewer calls to you</li>
+          <li><span class="check">✓</span> Works on mobile — client can check progress from anywhere</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 3: Material Tracking -->
+    <div class="feature-block">
+      <div class="feature-img">
+        <span class="feat-number">03</span>
+        <div class="mock-card">
+          <h4>Material Inventory — Live</h4>
+          <div style="margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f1f5f9;">
+              <span>Cement (53 Grade)</span>
+              <span style="color:#16a34a;font-weight:700;">30 bags</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f1f5f9;">
+              <span>Steel Rods 12mm</span>
+              <span style="color:#16a34a;font-weight:700;">500 kg</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f1f5f9;color:#dc2626;">
+              <span>Sand ⚠</span>
+              <span style="font-weight:700;">2 loads (LOW)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;">
+              <span>Bricks</span>
+              <span style="color:#16a34a;font-weight:700;">4,200 pcs</span>
+            </div>
+          </div>
+        </div>
+        <div class="mock-card" style="background:#fee2e2;border:none;">
+          <h4 style="color:#dc2626;">⚠ Low Stock Alert Sent</h4>
+          <p style="color:#7f1d1d;font-size:12px;">Sand is below threshold. Email + WhatsApp alert sent to admin.</p>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Material Tracking</p>
+        <h3>Know Exactly What's on Site — And What's Going Missing</h3>
+        <p>Your supervisor logs every delivery (cement, sand, steel, bricks) and every day's consumption from their phone. You see the real balance live — and get an automatic alert when anything runs low before it causes a delay.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Supervisor logs inward (received) and consumed (used) on phone</li>
+          <li><span class="check">✓</span> Full transaction history with date, quantity, and delivery challan note</li>
+          <li><span class="check">✓</span> Photo proof of delivery — supervisor photographs the lorry</li>
+          <li><span class="check">✓</span> Automatic WhatsApp alert when stock falls below your threshold</li>
+          <li><span class="check">✓</span> Stops material theft and over-billing from suppliers</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 4: Daily Reports -->
+    <div class="feature-block reverse">
+      <div class="feature-img">
+        <span class="feat-number">04</span>
+        <div class="mock-card">
+          <h4>Daily Site Report — 09 Mar 2026</h4>
+          <div class="mock-stat">
+            <span class="stat-pill stat-blue">Sunny</span>
+            <span class="stat-pill stat-green">28 Workers</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <p style="font-size:12px;color:#374151;font-style:italic;">"Completed 3rd floor column casting for Grid A and B. Bar bending work started for roof slab."</p>
+        </div>
+        <div class="mock-card" style="border-left:3px solid #dc2626;">
+          <h4 style="color:#dc2626;">Issue Reported</h4>
+          <p style="font-size:12px;">One worker absent — replaced from local labour.</p>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Daily Reports</p>
+        <h3>A Written Record of Every Day's Work — Your Legal Protection</h3>
+        <p>Your supervisor submits a daily report at the end of each day from their phone. Work done, labour count, weather, materials used, and any issues — all time-stamped and stored permanently. When disputes arise, you have proof.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Supervisor submits in 2 minutes from their phone</li>
+          <li><span class="check">✓</span> Daily labour headcount — track attendance over time</li>
+          <li><span class="check">✓</span> Issues and delays documented with date stamp</li>
+          <li><span class="check">✓</span> Admin sees all site reports across all projects on one dashboard</li>
+          <li><span class="check">✓</span> Permanent record — protects you in client disputes</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 5: Payments -->
+    <div class="feature-block">
+      <div class="feature-img">
+        <span class="feat-number">05</span>
+        <div class="mock-card" style="background:#fef3c7;border:1px solid #fcd34d;">
+          <h4>3rd Floor &amp; Terrace Payment</h4>
+          <p style="font-size:13px;font-weight:700;color:#1A3C5E;margin-top:4px;">₹30,00,000</p>
+          <div style="margin-top:10px;">
+            <span style="background:#22c55e;color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;">Mark as Paid</span>
+          </div>
+        </div>
+        <div class="mock-card">
+          <h4 style="color:#16a34a;">✓ Paid — ₹90,00,000 Collected</h4>
+          <div style="margin-top:8px;">
+            <span style="background:#25D366;color:#fff;font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;">Share Receipt on WhatsApp</span>
+          </div>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Payment Management</p>
+        <h3>Raise Bills, Collect Payments, Send Receipts — All in One Click</h3>
+        <p>Create a payment request milestone, client sees it in their portal, you mark it as paid when received, and a professional WhatsApp receipt goes to the client instantly. No more chasing, no more confusion about what's been paid.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Create payment requests linked to project milestones</li>
+          <li><span class="check">✓</span> Client sees pending dues in their portal with contact number</li>
+          <li><span class="check">✓</span> One click "Mark as Paid" — updates status instantly</li>
+          <li><span class="check">✓</span> WhatsApp receipt sent to client with project and date details</li>
+          <li><span class="check">✓</span> Full payment history exportable to Excel/CSV</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 6: Profit Dashboard -->
+    <div class="feature-block reverse">
+      <div class="feature-img">
+        <span class="feat-number">06</span>
+        <div class="mock-card">
+          <h4>4BHK Villa — Jubilee Hills</h4>
+          <div style="margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+              <span style="color:var(--muted);">Contract Value</span>
+              <span style="font-weight:700;">₹72,00,000</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;">
+              <span style="color:var(--muted);">Total Expenses</span>
+              <span style="font-weight:700;color:#dc2626;">₹54,00,000</span>
+            </div>
+            <div style="height:8px;background:#dcfce7;border-radius:4px;overflow:hidden;">
+              <div style="width:75%;height:100%;background:#22c55e;border-radius:4px;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;">
+              <span style="color:#16a34a;font-weight:700;">Gross Margin: ₹18L</span>
+              <span style="color:#16a34a;font-weight:700;">25%</span>
+            </div>
+          </div>
+        </div>
+        <div class="mock-card" style="border-left:3px solid #F59E0B;">
+          <h4>G+3 Apartments — Warning</h4>
+          <p style="font-size:12px;color:#b45309;">Expenses at 82% of contract. Margin thinning.</p>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">Profit &amp; Loss Dashboard</p>
+        <h3>Finally Know Which Projects Are Making You Money</h3>
+        <p>Log your actual expenses — materials purchased, labour paid, equipment hired, subcontractor bills — and instantly see the gross margin per project. Know before it's too late whether a project is running over budget.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Log expenses by category: Materials, Labour, Equipment, Subcontractor</li>
+          <li><span class="check">✓</span> Visual margin bar per project — green/amber/red health indicator</li>
+          <li><span class="check">✓</span> Company-wide profit summary across all active projects</li>
+          <li><span class="check">✓</span> Early warning when expenses are eating into your margin</li>
+          <li><span class="check">✓</span> Compare estimated vs actual cost at a glance</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feature 7: PDF Quotes -->
+    <div class="feature-block">
+      <div class="feature-img">
+        <span class="feat-number">07</span>
+        <div class="mock-card" style="border:1px solid #1A3C5E;">
+          <div style="background:#1A3C5E;margin:-16px -20px 12px;padding:14px 20px;border-radius:8px 8px 0 0;">
+            <h4 style="color:#fff;font-size:14px;">QUOTATION</h4>
+            <p style="color:rgba(255,255,255,0.6);font-size:11px;">KCD/2025/007 · Valid 30 days</p>
+          </div>
+          <div style="font-size:11px;color:#374151;">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;">
+              <span>Foundation Work</span><span style="font-weight:700;">₹4,50,000</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9;">
+              <span>RCC Structure</span><span style="font-weight:700;">₹12,00,000</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:800;color:#1A3C5E;">
+              <span>Total (incl. GST)</span><span>₹19,03,200</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <span class="stat-pill stat-green">PDF Downloaded</span>
+          <span class="stat-pill stat-blue">WhatsApp Sent</span>
+        </div>
+      </div>
+      <div class="feature-text">
+        <p class="tagline">PDF Quote Generator</p>
+        <h3>Send Professional Quotations in Minutes — Not Days</h3>
+        <p>Build an itemized quotation with work items, units, quantities and rates. The system calculates GST, total, and generates a professional A4 PDF with your company letterhead, terms, and signature block — ready to WhatsApp or email the client.</p>
+        <ul class="benefit-list">
+          <li><span class="check">✓</span> Auto-numbered: KCD/2025/001, KCD/2025/002...</li>
+          <li><span class="check">✓</span> Itemized BOQ — sqft, RMT, nos, cubic meters, lumpsum</li>
+          <li><span class="check">✓</span> GST calculation (5%/12%/18%/28%) with amount in words</li>
+          <li><span class="check">✓</span> Company letterhead, terms &amp; conditions, signature block</li>
+          <li><span class="check">✓</span> Track status: Draft → Sent → Accepted / Rejected</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ────────────── PORTALS ────────────── -->
+<section class="portals">
+  <div class="portals-inner">
+    <p class="section-label" style="text-align:center;color:var(--primary);">Three Separate Portals</p>
+    <h2>The Right Access for Every Person</h2>
+    <p class="portals-sub">Admin, Supervisor, and Client each see only what's relevant to them.</p>
+    <div class="portals-grid">
+      <div class="portal-card admin-card-p">
+        <div class="portal-title">Admin Portal</div>
+        <div class="portal-who">Owner / Manager</div>
+        <div class="portal-item"><span class="portal-dot"></span>Full dashboard — all projects, revenue, alerts</div>
+        <div class="portal-item"><span class="portal-dot"></span>Add projects, milestones, documents</div>
+        <div class="portal-item"><span class="portal-dot"></span>Create supervisors and assign sites</div>
+        <div class="portal-item"><span class="portal-dot"></span>Mark payments, send WhatsApp receipts</div>
+        <div class="portal-item"><span class="portal-dot"></span>Profit/Loss per project</div>
+        <div class="portal-item"><span class="portal-dot"></span>Generate PDF quotations</div>
+        <div class="portal-item"><span class="portal-dot"></span>Manage website content</div>
+      </div>
+      <div class="portal-card super-card">
+        <div class="portal-title">Supervisor Portal</div>
+        <div class="portal-who">Site Supervisor / Engineer</div>
+        <div class="portal-item"><span class="portal-dot"></span>Sees only assigned sites</div>
+        <div class="portal-item"><span class="portal-dot"></span>Log material received and used</div>
+        <div class="portal-item"><span class="portal-dot"></span>Upload lorry/delivery proof photos</div>
+        <div class="portal-item"><span class="portal-dot"></span>Submit daily work report</div>
+        <div class="portal-item"><span class="portal-dot"></span>View live material stock levels</div>
+        <div class="portal-item"><span class="portal-dot"></span>Works on mobile as an app</div>
+      </div>
+      <div class="portal-card client-card">
+        <div class="portal-title">Client Portal</div>
+        <div class="portal-who">Your Client / Customer</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Sees only their assigned project</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Live milestone progress with photos</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Payment history — paid &amp; pending</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Download shared documents</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Contact button for pending payments</div>
+        <div class="portal-item"><span class="portal-dot" style="background:#1A3C5E;"></span>Works on mobile — check anytime</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────── WHO IS IT FOR ────────────── -->
+<section class="who">
+  <div class="who-inner">
+    <p class="section-label">Who Is This For</p>
+    <h2>Built for Construction Companies Like Yours</h2>
+    <p>Any construction business with 2–50 active projects, at least one supervisor on site, and clients who deserve transparency.</p>
+    <div class="who-grid">
+      <div class="who-card">
+        <div class="who-icon">🏠</div>
+        <h3>Residential Builders</h3>
+        <p>Villas, independent houses, apartments — manage multiple client projects with full transparency.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon">🏢</div>
+        <h3>Commercial Contractors</h3>
+        <p>Office complexes, showrooms, warehouses — track large-value contracts professionally.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon">🔧</div>
+        <h3>Renovation Companies</h3>
+        <p>Home interiors, bathroom upgrades, full renovations — give clients visibility on every stage.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon">⚙️</div>
+        <h3>Civil Contractors</h3>
+        <p>Roads, compound walls, drainage, structural work — track materials and progress systematically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────── RESULTS ────────────── -->
+<section class="results">
+  <div class="results-inner">
+    <p class="section-label">Why It Matters</p>
+    <h2 style="color:#fff;">What Changes When You Use This System</h2>
+    <p class="results-sub">Numbers based on typical construction businesses that adopt digital operations.</p>
+    <div class="results-grid">
+      <div class="result-stat">
+        <div class="number">70%</div>
+        <p>Fewer client update calls — clients check the portal themselves</p>
+      </div>
+      <div class="result-stat">
+        <div class="number">15%</div>
+        <p>Reduction in material wastage when every delivery is logged</p>
+      </div>
+      <div class="result-stat">
+        <div class="number">3x</div>
+        <p>Faster payment collection with formal digital billing</p>
+      </div>
+      <div class="result-stat">
+        <div class="number">100%</div>
+        <p>Every project day documented — you always have written proof</p>
+      </div>
+    </div>
+    <div class="testimonial-box">
+      <blockquote>"Before this system, I was spending 2 hours a day on calls explaining project status. Now clients check the portal themselves. My supervisor submits a daily report every evening. I know exactly what's happening on every site without being there."</blockquote>
+      <cite>— Construction Company Owner, Hyderabad</cite>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────── PRICING ────────────── -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <p class="section-label" style="color:var(--primary);">Pricing</p>
+    <h2>One Investment. Your Business, Transformed.</h2>
+    <p class="pricing-sub">Custom-built for your company. No templates, no shared platforms. Your brand, your data, your domain.</p>
+    <div class="pricing-cards">
+      <div class="price-card">
+        <h3>Starter</h3>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px;">For smaller operations managing up to 5 active projects</p>
+        <div class="price-amount">₹45,000</div>
+        <p class="price-period">one-time setup + ₹2,000/month hosting</p>
+        <ul class="price-features">
+          <li><span class="check">✓</span> Professional website (5 pages)</li>
+          <li><span class="check">✓</span> Admin dashboard</li>
+          <li><span class="check">✓</span> Client portal (up to 10 clients)</li>
+          <li><span class="check">✓</span> 1 supervisor account</li>
+          <li><span class="check">✓</span> Payment management</li>
+          <li><span class="check">✓</span> Basic material tracking</li>
+        </ul>
+        <a href="#contact" class="price-btn">Get Started</a>
+      </div>
+      <div class="price-card featured">
+        <div class="popular-badge">Most Popular</div>
+        <h3>Professional</h3>
+        <p style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:8px;">For growing companies with multiple sites and teams</p>
+        <div class="price-amount">₹85,000</div>
+        <p class="price-period">one-time setup + ₹3,500/month hosting</p>
+        <ul class="price-features">
+          <li><span class="check">✓</span> Everything in Starter</li>
+          <li><span class="check">✓</span> Full website with blog &amp; SEO</li>
+          <li><span class="check">✓</span> Unlimited clients &amp; projects</li>
+          <li><span class="check">✓</span> Up to 5 supervisor accounts</li>
+          <li><span class="check">✓</span> Full material tracking &amp; alerts</li>
+          <li><span class="check">✓</span> Daily reports system</li>
+          <li><span class="check">✓</span> PDF Quote generator</li>
+          <li><span class="check">✓</span> Profit/Loss dashboard</li>
+          <li><span class="check">✓</span> WhatsApp &amp; email notifications</li>
+          <li><span class="check">✓</span> Install on phone (PWA)</li>
+        </ul>
+        <a href="#contact" class="price-btn">Get Started</a>
+      </div>
+      <div class="price-card">
+        <h3>Enterprise</h3>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px;">For larger operations with complex requirements</p>
+        <div class="price-amount">Custom</div>
+        <p class="price-period">based on scope and team size</p>
+        <ul class="price-features">
+          <li><span class="check">✓</span> Everything in Professional</li>
+          <li><span class="check">✓</span> Unlimited supervisors</li>
+          <li><span class="check">✓</span> Custom modules on request</li>
+          <li><span class="check">✓</span> Subcontractor management</li>
+          <li><span class="check">✓</span> Labour attendance tracking</li>
+          <li><span class="check">✓</span> Priority support &amp; training</li>
+          <li><span class="check">✓</span> Dedicated account manager</li>
+        </ul>
+        <a href="#contact" class="price-btn">Talk to Us</a>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:32px;text-align:center;">All plans include: custom domain setup, Firebase database, free SSL, mobile-responsive design, and 1 month of free support after launch.</p>
+  </div>
+</section>
+
+<!-- ────────────── CTA ────────────── -->
+<section class="cta" id="contact">
+  <h2>Ready to Bring Your Business Online?</h2>
+  <p>Get a free demo of the system with your company name and logo. See exactly how it would look for your business before you commit.</p>
+  <div class="cta-btns">
+    <a href="tel:+919386655555" class="cta-btn-primary">Call +91 93866 55555</a>
+    <a href="https://wa.me/919386655555?text=Hi, I want to see a demo of the Construction Management System" class="cta-btn-outline">WhatsApp Us</a>
+  </div>
+  <p style="font-size:13px;margin-top:24px;color:rgba(26,60,94,0.6);">Free demo · No commitment · Setup in 2 weeks · Your brand, your domain</p>
+</section>
+
+<!-- ────────────── FOOTER ────────────── -->
+<footer>
+  <p><strong>VWebStudio</strong> · Construction Business Management Systems · Made in India</p>
+  <p style="margin-top:8px;">Building digital infrastructure for construction companies across India.</p>
+</footer>
+
+</body>
+</html>

@@ -7,7 +7,7 @@ import type {
   CompanyInfo, Client, Service, Project, Milestone, ProjectDocument,
   Payment, TeamMember, BlogPost, Enquiry, Testimonial,
   Supervisor, SiteTeamMember, ProjectMaterial, MaterialTransaction, DailyReport,
-  Quote, ProjectExpense,
+  Quote, ProjectExpense, ProjectVendor, VendorOrder,
 } from '@/types'
 
 // ─── Company ──────────────────────────────────────────────────────
@@ -289,5 +289,38 @@ export async function getAllProjectsExpenses(): Promise<ProjectExpense[]> {
   try {
     const s = await getDocs(collectionGroup(db, 'expenses'))
     return s.docs.map((d) => ({ id: d.id, projectId: d.ref.parent.parent?.id ?? '', ...d.data() } as ProjectExpense))
+  } catch { return [] }
+}
+
+// ─── Project Vendors ──────────────────────────────────────────────
+export async function getProjectVendors(projectId: string): Promise<ProjectVendor[]> {
+  try { const q = query(collection(db, 'projects', projectId, 'vendors'), orderBy('name')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, projectId, ...d.data() } as ProjectVendor)) } catch { return [] }
+}
+export async function addProjectVendor(projectId: string, data: Omit<ProjectVendor, 'id' | 'projectId'>) {
+  return (await addDoc(collection(db, 'projects', projectId, 'vendors'), { ...data, createdAt: new Date().toISOString() })).id
+}
+export async function deleteProjectVendor(projectId: string, vendorId: string) {
+  await deleteDoc(doc(db, 'projects', projectId, 'vendors', vendorId))
+}
+
+// ─── Vendor Orders ────────────────────────────────────────────────
+export async function getVendorOrders(projectId: string): Promise<VendorOrder[]> {
+  try { const q = query(collection(db, 'projects', projectId, 'vendorOrders'), orderBy('date', 'desc')); const s = await getDocs(q); return s.docs.map((d) => ({ id: d.id, projectId, ...d.data() } as VendorOrder)) } catch { return [] }
+}
+export async function addVendorOrder(projectId: string, data: Omit<VendorOrder, 'id' | 'projectId'>) {
+  return (await addDoc(collection(db, 'projects', projectId, 'vendorOrders'), { ...data, createdAt: new Date().toISOString() })).id
+}
+export async function updateVendorOrder(projectId: string, orderId: string, data: Partial<VendorOrder>) {
+  await updateDoc(doc(db, 'projects', projectId, 'vendorOrders', orderId), data)
+}
+export async function deleteVendorOrder(projectId: string, orderId: string) {
+  await deleteDoc(doc(db, 'projects', projectId, 'vendorOrders', orderId))
+}
+
+// Get all vendor orders across all projects (for admin dashboard payables)
+export async function getAllVendorOrders(): Promise<VendorOrder[]> {
+  try {
+    const s = await getDocs(collectionGroup(db, 'vendorOrders'))
+    return s.docs.map((d) => ({ id: d.id, projectId: d.ref.parent.parent?.id ?? '', ...d.data() } as VendorOrder))
   } catch { return [] }
 }

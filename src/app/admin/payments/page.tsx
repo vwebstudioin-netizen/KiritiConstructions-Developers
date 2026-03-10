@@ -1,18 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { getAllPayments, getAllProjects, getAllClients, updatePayment } from '@/lib/firestore'
+import { getCompanyInfo } from '@/lib/firestore'
 import type { Payment, Project, Client } from '@/types'
-import { FiDownload, FiCheckCircle, FiCheck } from 'react-icons/fi'
+import { DEFAULT_COMPANY } from '@/types'
+import { FiDownload, FiCheckCircle, FiCheck, FiFileText } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import { generateReceiptPDF, uploadReceiptAndGetURL } from '@/lib/generateReceipt'
 
 const STATUS_COLORS: Record<string, string> = { pending: 'badge-gray', paid: 'badge-green', failed: 'badge-red' }
 
-function buildWhatsApp(client: Client, project: Project | undefined, pay: Payment): string {
-  const amount = `₹${Number(pay.amount).toLocaleString('en-IN')}`
-  const date = pay.paidAt ? new Date(pay.paidAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')
-  const msg = `*Payment Receipt*\n\nDear ${client.name},\n\nWe confirm receipt of your payment:\n\n*Amount:* ${amount}\n*For:* ${pay.description}\n*Project:* ${project?.title ?? 'Your Project'}\n*Date:* ${date}\n\nThank you!\n— Kiriti Constructions & Developers`
-  const phone = client.phone.replace(/\D/g, '')
-  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+function receiptNumber(payId: string): string {
+  return `KCD/${new Date().getFullYear()}/${payId.slice(-6).toUpperCase()}`
 }
 
 export default function AdminPaymentsPage() {
@@ -21,12 +20,15 @@ export default function AdminPaymentsPage() {
   const [clients, setClients] = useState<Record<string, Client>>({})
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid' | 'failed'>('all')
   const [marking, setMarking] = useState<string | null>(null)
+  const [generating, setGenerating] = useState<string | null>(null)
+  const [company, setCompany] = useState(DEFAULT_COMPANY)
 
   useEffect(() => {
-    Promise.all([getAllPayments(), getAllProjects(), getAllClients()]).then(([pays, projs, clts]) => {
+    Promise.all([getAllPayments(), getAllProjects(), getAllClients(), getCompanyInfo()]).then(([pays, projs, clts, co]) => {
       setPayments(pays.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()))
       const projMap: Record<string, Project> = {}; projs.forEach((p) => { projMap[p.id] = p }); setProjects(projMap)
       const cltMap: Record<string, Client> = {}; clts.forEach((c) => { cltMap[c.uid] = c }); setClients(cltMap)
+      if (co) setCompany(co)
     })
   }, [])
 
@@ -36,6 +38,51 @@ export default function AdminPaymentsPage() {
     await updatePayment(pay.id, { status: 'paid', paidAt })
     setPayments((prev) => prev.map((p) => p.id === pay.id ? { ...p, status: 'paid', paidAt } : p))
     setMarking(null)
+  }
+
+  const handleReceiptAction = async (pay: Payment, action: 'download' | 'whatsapp') => {
+    const client = clients[pay.clientId ?? '']
+    const project = projects[pay.projectId]
+    setGenerating(pay.id)
+    try {
+      const blob = generateReceiptPDF({
+        receiptNumber: receiptNumber(pay.id),
+        paymentId: pay.id,
+        clientName: client?.name ?? 'Client',
+        clientPhone: client?.phone ?? '',
+        clientEmail: client?.email,
+        projectTitle: project?.title ?? 'Your Project',
+        description: pay.description,
+        amount: pay.amount,
+        paidAt: pay.paidAt ?? pay.createdAt,
+        companyName: company.name,
+        companyAddress: company.address,
+        companyPhone: company.phone,
+        companyEmail: company.email,
+      })
+
+      if (action === 'download') {
+        // Download directly in browser
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Receipt-${receiptNumber(pay.id)}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        // Upload to Firebase Storage → share URL via WhatsApp
+        const pdfUrl = await uploadReceiptAndGetURL(blob, pay.id, client?.name ?? 'client')
+        const amount = `Rs. ${pay.amount.toLocaleString('en-IN')}`
+        const date = pay.paidAt ? new Date(pay.paidAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')
+        const phone = client?.phone.replace(/\D/g, '') ?? ''
+        const msg = `Dear ${client?.name ?? 'Sir/Madam'},\n\nThank you for your payment of *${amount}* for *${pay.description}*.\n\nProject: ${project?.title ?? ''}\nDate: ${date}\n\nPlease find your payment receipt here:\n${pdfUrl}\n\nRegards,\n${company.name}`
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+      }
+    } catch (err) {
+      console.error('Receipt error:', err)
+      alert('Could not generate receipt. Check Firebase Storage is configured.')
+    }
+    setGenerating(null)
   }
 
   const filtered = filter === 'all' ? payments : payments.filter((p) => p.status === filter)
@@ -116,15 +163,23 @@ export default function AdminPaymentsPage() {
                     <span className="flex items-center gap-1.5 font-body text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-3 py-2 rounded-lg">
                       <FiCheck size={13} /> Paid
                     </span>
+                    <button
+                      onClick={() => handleReceiptAction(pay, 'download')}
+                      disabled={generating === pay.id}
+                      className="flex items-center gap-1.5 font-body text-sm font-semibold bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-60"
+                    >
+                      <FiFileText size={14} />
+                      {generating === pay.id ? 'Generating...' : 'Download Receipt'}
+                    </button>
                     {client && (
-                      <a
-                        href={buildWhatsApp(client, project, pay)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-4 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors"
+                      <button
+                        onClick={() => handleReceiptAction(pay, 'whatsapp')}
+                        disabled={generating === pay.id}
+                        className="flex items-center gap-1.5 font-body text-sm font-semibold bg-[#25D366] text-white px-4 py-2 rounded-lg hover:bg-[#1ebe59] transition-colors disabled:opacity-60"
                       >
-                        <FaWhatsapp size={15} /> Share Receipt
-                      </a>
+                        <FaWhatsapp size={15} />
+                        {generating === pay.id ? 'Uploading...' : 'Share PDF via WhatsApp'}
+                      </button>
                     )}
                   </>
                 ) : null}

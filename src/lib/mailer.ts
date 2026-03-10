@@ -20,7 +20,7 @@ export async function sendEnquiryEmail(data: { name: string; phone: string; emai
     from: `"Kiriti Constructions & Developers" <${process.env.SMTP_EMAIL}>`,
     to: data.email,
     subject: 'We received your quote request — Kiriti Constructions & Developers',
-    html: `<div style="font-family:Arial,sans-serif;max-width:600px"><div style="background:#1A3C5E;padding:24px 32px;border-radius:12px 12px 0 0"><h2 style="color:white;margin:0">Thank You, ${data.name}!</h2></div><div style="background:#f8fafc;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px"><p>We received your quote request for <b>${data.serviceType}</b> and will get back to you within 24 hours.</p><p>📞 <b>+91 98765 43210</b></p></div></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:600px"><div style="background:#1A3C5E;padding:24px 32px;border-radius:12px 12px 0 0"><h2 style="color:white;margin:0">Thank You, ${data.name}!</h2></div><div style="background:#f8fafc;padding:32px;border:1px solid #e2e8f0;border-radius:0 0 12px 12px"><p>We received your quote request for <b>${data.serviceType}</b> and will get back to you within 24 hours.</p><p>📞 <b>+91 93866 55555</b></p></div></div>`,
   })
 }
 

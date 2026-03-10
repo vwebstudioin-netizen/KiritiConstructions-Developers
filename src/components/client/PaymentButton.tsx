@@ -15,7 +15,7 @@ interface PaymentButtonProps {
 export default function PaymentButton({ amount }: PaymentButtonProps) {
   return (
     <a
-      href="tel:+919876543210"
+      href="tel:+919386655555"
       className="flex items-center gap-1.5 font-body text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary-light transition-colors mt-1"
     >
       <FiPhone size={12} />

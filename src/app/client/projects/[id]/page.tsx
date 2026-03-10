@@ -92,7 +92,7 @@ export default function ProjectDetailPage() {
               <p className="font-body text-sm font-semibold text-dark">{pendingPayments.length} pending payment{pendingPayments.length > 1 ? 's' : ''}</p>
               <p className="font-body text-xs text-muted">Total due: ₹{(pendingPayments.reduce((s, p) => s + p.amount, 0) / 100000).toFixed(1)}L — Contact our office to pay</p>
             </div>
-            <a href="tel:+919876543210" className="flex items-center gap-2 btn-primary text-sm px-4 py-2">
+            <a href="tel:+919386655555" className="flex items-center gap-2 btn-primary text-sm px-4 py-2">
               <FiPhone size={14} /> Call to Pay
             </a>
           </div>
@@ -194,7 +194,7 @@ export default function ProjectDetailPage() {
                   <div className="text-right flex-shrink-0">
                     <p className="font-display text-lg font-bold text-dark">₹{(payment.amount / 100000).toFixed(1)}L</p>
                     {payment.status === 'pending' ? (
-                      <a href="tel:+919876543210" className="flex items-center gap-1 font-body text-xs text-primary hover:underline mt-1">
+                      <a href="tel:+919386655555" className="flex items-center gap-1 font-body text-xs text-primary hover:underline mt-1">
                         <FiPhone size={11} /> Contact to Pay
                       </a>
                     ) : (

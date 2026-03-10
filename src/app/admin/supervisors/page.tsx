@@ -75,7 +75,7 @@ export default function SupervisorsPage() {
         <p className="font-body text-xs text-muted mb-4">Creates a Firebase login account for the supervisor so they can access their assigned sites.</p>
         <div className="grid md:grid-cols-2 gap-4">
           <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Full Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field" /></div>
-          <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Phone</label><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 98765 43210" className="input-field" /></div>
+          <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Phone</label><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+91 93866 55555" className="input-field" /></div>
           <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Email (Login) *</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field" /></div>
           <div><label className="block font-body text-xs text-muted uppercase tracking-wider mb-1.5">Temp Password * (min 6 chars)</label><input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input-field" /></div>
           <div className="md:col-span-2">

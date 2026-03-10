@@ -63,7 +63,7 @@ export default function ClientPaymentsPage() {
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="font-display text-lg font-bold text-dark mb-1">₹{(payment.amount / 100000).toFixed(1)}L</p>
-                  <a href="tel:+919876543210" className="flex items-center gap-1.5 font-body text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity">
+                  <a href="tel:+919386655555" className="flex items-center gap-1.5 font-body text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity">
                     <FiPhone size={12} /> Contact to Pay
                   </a>
                 </div>
@@ -71,7 +71,7 @@ export default function ClientPaymentsPage() {
             ))}
           </div>
           <p className="font-body text-xs text-muted mt-3 p-3 bg-slate rounded-lg border border-gray-100">
-            To clear your dues, please contact our office at <strong>+91 98765 43210</strong> or visit us in person.
+            To clear your dues, please contact our office at <strong>+91 93866 55555</strong> or visit us in person.
           </p>
         </div>
       )}

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { getClientByUid, getPaymentsByClient, getPaymentsByProject, getProjectById } from '@/lib/firestore'
+import { getClientByUid, getPaymentsByClient, getPaymentsByProject, getProjectById, getProjectsByClient } from '@/lib/firestore'
 import type { Payment, Client, Project } from '@/types'
 import { FiClock, FiPhone } from 'react-icons/fi'
 
@@ -17,17 +17,24 @@ export default function ClientPaymentsPage() {
       if (!user) return
       const c = await getClientByUid(user.uid)
       setClient(c)
-      if (c && c.assignedProjects.length > 0) {
-        // Query by projectId (reliable) + clientId (fallback), then deduplicate
+
+      // Get project IDs: from assignedProjects OR from projects where clientId == uid
+      const clientProjects = await getProjectsByClient(user.uid)
+      const projectIds = [
+        ...new Set([
+          ...(c?.assignedProjects ?? []),
+          ...clientProjects.map((p) => p.id),
+        ])
+      ]
+
+      if (projectIds.length > 0) {
+        // Query by projectId (most reliable) + clientId (catches legacy payments)
         const [byProject, byClient] = await Promise.all([
-          Promise.all(c.assignedProjects.map((pid) => getPaymentsByProject(pid))),
+          Promise.all(projectIds.map((pid) => getPaymentsByProject(pid))),
           getPaymentsByClient(user.uid),
         ])
-        const allFromProjects = byProject.flat()
-        const allFromClient = byClient
-        // Merge and deduplicate by payment id
-        const merged = [...allFromProjects]
-        allFromClient.forEach((p) => { if (!merged.find((m) => m.id === p.id)) merged.push(p) })
+        const merged = [...byProject.flat()]
+        byClient.forEach((p) => { if (!merged.find((m) => m.id === p.id)) merged.push(p) })
         const allPays = merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         setPayments(allPays)
         const projs = await Promise.all([...new Set(allPays.map((p) => p.projectId))].map((id) => getProjectById(id)))
